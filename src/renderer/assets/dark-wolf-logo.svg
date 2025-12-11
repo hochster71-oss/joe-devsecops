@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 80" fill="none">
+  <!-- Wolf Silhouette -->
+  <g transform="translate(10, 10)">
+    <!-- Wolf Head -->
+    <path d="M0 40 L8 20 L16 35 L24 15 L32 35 L40 20 L48 40 L40 50 L24 55 L8 50 Z"
+          fill="#1E1E1E"
+          stroke="#87C549"
+          stroke-width="2"/>
+    <!-- Wolf Eyes (glowing) -->
+    <circle cx="16" cy="35" r="3" fill="#00A8E8">
+      <animate attributeName="opacity" values="1;0.5;1" dur="2s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="32" cy="35" r="3" fill="#00A8E8">
+      <animate attributeName="opacity" values="1;0.5;1" dur="2s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- DARK WOLF Text -->
+  <text x="70" y="35"
+        font-family="Josefin Sans, Arial, sans-serif"
+        font-size="24"
+        font-weight="600"
+        fill="#FFFFFF">DARK WOLF</text>
+
+  <!-- SOLUTIONS Text -->
+  <text x="70" y="55"
+        font-family="Nunito Sans, Arial, sans-serif"
+        font-size="14"
+        fill="#87C549"
+        letter-spacing="3">SOLUTIONS</text>
+
+  <!-- Divider Line -->
+  <line x1="70" y1="62" x2="180" y2="62" stroke="#87C549" stroke-width="1"/>
+</svg>

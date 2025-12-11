@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!-- Background -->
+  <rect width="512" height="512" fill="#000000"/>
+
+  <!-- DevSecOps Shield -->
+  <path d="M256 48L96 128v128c0 106.667 68.267 206.933 160 240 91.733-33.067 160-133.333 160-240V128L256 48z"
+        fill="none"
+        stroke="#00A8E8"
+        stroke-width="8"
+        stroke-linecap="round"
+        stroke-linejoin="round"/>
+
+  <!-- Inner Shield Glow -->
+  <path d="M256 80L120 148v108c0 89.6 57.6 174.4 136 202.4 78.4-28 136-112.8 136-202.4V148L256 80z"
+        fill="rgba(0, 168, 232, 0.1)"/>
+
+  <!-- Lock Icon in Shield -->
+  <rect x="216" y="200" width="80" height="60" rx="8" fill="#00A8E8"/>
+  <path d="M232 200v-24c0-13.255 10.745-24 24-24s24 10.745 24 24v24"
+        stroke="#00A8E8"
+        stroke-width="8"
+        stroke-linecap="round"
+        fill="none"/>
+  <circle cx="256" cy="230" r="8" fill="#000000"/>
+  <rect x="252" y="230" width="8" height="16" fill="#000000"/>
+
+  <!-- J.O.E. Text -->
+  <text x="256" y="340"
+        font-family="Arial Black, sans-serif"
+        font-size="72"
+        font-weight="900"
+        fill="#00A8E8"
+        text-anchor="middle">J.O.E.</text>
+
+  <!-- Tagline -->
+  <text x="256" y="380"
+        font-family="Arial, sans-serif"
+        font-size="18"
+        fill="#87C549"
+        text-anchor="middle">DEVSECOPS</text>
+</svg>

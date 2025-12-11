@@ -1,0 +1,110 @@
+{
+  "name": "joe-devsecops",
+  "displayName": "J.O.E. DevSecOps Arsenal",
+  "description": "Joint-Ops-Engine: AI-Driven DevSecOps Dashboard by Dark Wolf Solutions",
+  "version": "1.0.0",
+  "author": {
+    "name": "Michael Hoch",
+    "email": "michael@darkwolfsolutions.com"
+  },
+  "company": "Dark Wolf Solutions",
+  "license": "MIT",
+  "main": ".vite/build/main.js",
+  "scripts": {
+    "start": "cross-env ELECTRON_RUN_AS_NODE= npx electron-forge start",
+    "package": "cross-env ELECTRON_RUN_AS_NODE= npx electron-forge package",
+    "make": "cross-env ELECTRON_RUN_AS_NODE= npx electron-forge make",
+    "lint": "eslint src --ext ts,tsx",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "axios": "^1.6.2",
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^11.6.0",
+    "d3": "^7.8.5",
+    "date-fns": "^3.0.0",
+    "framer-motion": "^10.16.16",
+    "jsonwebtoken": "^9.0.2",
+    "lucide-react": "^0.294.0",
+    "pdfmake": "^0.2.9",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.21.0",
+    "recharts": "^2.10.3",
+    "uuid": "^9.0.1",
+    "xml2js": "^0.6.2",
+    "zustand": "^4.4.7"
+  },
+  "devDependencies": {
+    "@electron-forge/cli": "^7.10.2",
+    "@electron-forge/maker-squirrel": "^7.10.2",
+    "@electron-forge/maker-zip": "^7.10.2",
+    "@electron-forge/plugin-vite": "^7.10.2",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/better-sqlite3": "^7.6.8",
+    "@types/d3": "^7.4.3",
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/node": "^20.10.0",
+    "@types/react": "^18.2.45",
+    "@types/react-dom": "^18.2.17",
+    "@types/uuid": "^9.0.7",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.16",
+    "concurrently": "^8.2.2",
+    "cross-env": "^10.1.0",
+    "electron": "^35.7.5",
+    "electron-builder": "^24.9.1",
+    "electron-vite": "^5.0.0",
+    "eslint": "^8.55.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.3.6",
+    "typescript": "^5.3.2",
+    "vite": "^6.4.1",
+    "vite-plugin-electron": "^0.15.5",
+    "vite-plugin-electron-renderer": "^0.14.5",
+    "wait-on": "^7.2.0"
+  },
+  "overrides": {
+    "tmp": "0.2.5"
+  },
+  "build": {
+    "appId": "com.darkwolfsolutions.joe",
+    "productName": "J.O.E. DevSecOps Arsenal",
+    "copyright": "Copyright © 2025 Dark Wolf Solutions",
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "resources/icons/joe-icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "resources/icons/joe-icon.ico",
+      "uninstallerIcon": "resources/icons/joe-icon.ico",
+      "installerHeaderIcon": "resources/icons/joe-icon.ico"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "resources/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "resources",
+        "to": "resources"
+      }
+    ]
+  }
+}

@@ -1,0 +1,267 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Dark Wolf Solutions - Global Styles */
+@layer base {
+  :root {
+    /* Dark Wolf Brand Colors */
+    --dws-dark: #1E1E1E;
+    --dws-darker: #141414;
+    --dws-card: #343434;
+    --dws-elevated: #3A3A3A;
+    --dws-border: #4A4A4A;
+    --dws-green: #87C549;
+
+    /* J.O.E. Blue Accent */
+    --joe-blue: #00A8E8;
+    --joe-blue-light: #33BFFF;
+    --joe-blue-dark: #0088C2;
+    --joe-blue-glow: rgba(0, 168, 232, 0.3);
+
+    /* Alert Colors */
+    --alert-critical: #FF3366;
+    --alert-high: #FF6B35;
+    --alert-warning: #FFB000;
+    --alert-success: #87C549;
+    --alert-info: #00A8E8;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html {
+    font-size: 16px;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: 'Nunito Sans', sans-serif;
+    background: var(--dws-darker);
+    color: #FFFFFF;
+    line-height: 1.6;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  #root {
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Josefin Sans', sans-serif;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  code, pre, .font-mono {
+    font-family: 'JetBrains Mono', 'Consolas', monospace;
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--dws-darker);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--dws-border);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--joe-blue);
+  }
+
+  /* Selection */
+  ::selection {
+    background: var(--joe-blue);
+    color: white;
+  }
+}
+
+@layer components {
+  /* Glassmorphism Card */
+  .glass-card {
+    background: linear-gradient(135deg, rgba(52, 52, 52, 0.6), rgba(52, 52, 52, 0.2));
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+  }
+
+  /* Glow Effects */
+  .glow-blue {
+    box-shadow: 0 0 20px rgba(0, 168, 232, 0.4);
+  }
+
+  .glow-blue-hover:hover {
+    box-shadow: 0 0 30px rgba(0, 168, 232, 0.6);
+  }
+
+  .glow-green {
+    box-shadow: 0 0 20px rgba(135, 197, 73, 0.4);
+  }
+
+  .glow-critical {
+    box-shadow: 0 0 20px rgba(255, 51, 102, 0.4);
+  }
+
+  /* Animated Pulse Glow */
+  .pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% {
+      box-shadow: 0 0 20px rgba(0, 168, 232, 0.4);
+    }
+    50% {
+      box-shadow: 0 0 40px rgba(0, 168, 232, 0.6);
+    }
+  }
+
+  /* Button Styles */
+  .btn-primary {
+    @apply px-6 py-2.5 bg-joe-blue text-white font-medium rounded-lg;
+    @apply hover:bg-joe-blue-dark transition-all duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-joe-blue focus:ring-offset-2 focus:ring-offset-dws-dark;
+  }
+
+  .btn-secondary {
+    @apply px-6 py-2.5 bg-dws-card text-white font-medium rounded-lg border border-dws-border;
+    @apply hover:bg-dws-elevated hover:border-joe-blue transition-all duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-joe-blue focus:ring-offset-2 focus:ring-offset-dws-dark;
+  }
+
+  .btn-danger {
+    @apply px-6 py-2.5 bg-alert-critical text-white font-medium rounded-lg;
+    @apply hover:bg-alert-critical/80 transition-all duration-200;
+  }
+
+  /* Input Styles */
+  .input-field {
+    @apply w-full px-4 py-3 bg-dws-dark border border-dws-border rounded-lg text-white;
+    @apply placeholder:text-gray-500;
+    @apply focus:outline-none focus:border-joe-blue focus:ring-1 focus:ring-joe-blue;
+    @apply transition-all duration-200;
+  }
+
+  /* Badge Styles */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .badge-critical {
+    @apply bg-alert-critical/20 text-alert-critical border border-alert-critical/30;
+  }
+
+  .badge-high {
+    @apply bg-alert-high/20 text-alert-high border border-alert-high/30;
+  }
+
+  .badge-medium {
+    @apply bg-alert-warning/20 text-alert-warning border border-alert-warning/30;
+  }
+
+  .badge-low {
+    @apply bg-alert-success/20 text-alert-success border border-alert-success/30;
+  }
+
+  .badge-info {
+    @apply bg-alert-info/20 text-alert-info border border-alert-info/30;
+  }
+
+  /* Status Indicators */
+  .status-dot {
+    @apply w-2 h-2 rounded-full;
+  }
+
+  .status-online {
+    @apply bg-alert-success animate-pulse;
+  }
+
+  .status-warning {
+    @apply bg-alert-warning animate-pulse;
+  }
+
+  .status-critical {
+    @apply bg-alert-critical animate-pulse;
+  }
+
+  .status-offline {
+    @apply bg-gray-500;
+  }
+
+  /* Title Bar Drag Region */
+  .titlebar-drag {
+    -webkit-app-region: drag;
+    app-region: drag;
+  }
+
+  .titlebar-no-drag {
+    -webkit-app-region: no-drag;
+    app-region: no-drag;
+  }
+
+  /* Metric Card */
+  .metric-card {
+    @apply glass-card p-6 transition-all duration-300;
+    @apply hover:border-joe-blue/30;
+  }
+
+  /* Navigation Link */
+  .nav-link {
+    @apply flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400;
+    @apply hover:bg-dws-card hover:text-white transition-all duration-200;
+  }
+
+  .nav-link.active {
+    @apply bg-joe-blue/10 text-joe-blue border-l-2 border-joe-blue;
+  }
+
+  /* Table Styles */
+  .table-row {
+    @apply border-b border-dws-border hover:bg-dws-card/50 transition-colors;
+  }
+}
+
+@layer utilities {
+  /* Text Gradient */
+  .text-gradient-blue {
+    @apply bg-gradient-to-r from-joe-blue to-joe-blue-light bg-clip-text text-transparent;
+  }
+
+  .text-gradient-green {
+    @apply bg-gradient-to-r from-dws-green to-green-400 bg-clip-text text-transparent;
+  }
+
+  /* Truncate */
+  .truncate-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Hide scrollbar but allow scrolling */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
