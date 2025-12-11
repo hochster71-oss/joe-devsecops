@@ -566,6 +566,48 @@ export default function FindingsView() {
     setIsExporting(false);
   };
 
+  // AI Fix generation - uses Ollama to analyze and generate fixes
+  const generateAiFix = async (findingId: string) => {
+    setIsGeneratingFix(true);
+    setShowAiFix(true);
+    setFixApplied(false);
+    setCopiedCode(null);
+
+    // Simulate AI processing (in production, this calls Ollama)
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    const fix = aiFixes[findingId];
+    if (fix) {
+      setCurrentAiFix(fix);
+    }
+    setIsGeneratingFix(false);
+  };
+
+  // Apply the AI fix automatically
+  const handleApplyFix = async () => {
+    if (!currentAiFix || !selectedFinding) return;
+
+    setIsApplyingFix(true);
+    // Simulate applying the fix
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    setIsApplyingFix(false);
+    setFixApplied(true);
+  };
+
+  // Copy code to clipboard
+  const handleCopyCode = (code: string, identifier: string) => {
+    navigator.clipboard.writeText(code);
+    setCopiedCode(identifier);
+    setTimeout(() => setCopiedCode(null), 2000);
+  };
+
+  // Close AI fix panel
+  const closeAiFix = () => {
+    setShowAiFix(false);
+    setCurrentAiFix(null);
+    setFixApplied(false);
+  };
+
   const severityCounts = {
     critical: mockFindings.filter(f => f.severity === 'critical').length,
     high: mockFindings.filter(f => f.severity === 'high').length,
@@ -821,12 +863,23 @@ export default function FindingsView() {
               )}
             </div>
             <div className="flex items-center gap-3">
-              <button className="btn-secondary" type="button" onClick={() => setSelectedFinding(null)}>
+              <button className="btn-secondary" type="button" onClick={() => { setSelectedFinding(null); closeAiFix(); }}>
                 Close
               </button>
-              <button className="btn-primary" type="button">
-                Mark as Resolved
-              </button>
+              {!showAiFix ? (
+                <button
+                  className="btn-primary flex items-center gap-2 bg-gradient-to-r from-joe-blue to-purple-600 hover:from-joe-blue/80 hover:to-purple-600/80"
+                  type="button"
+                  onClick={() => selectedFinding && generateAiFix(selectedFinding.id)}
+                >
+                  <Wand2 size={16} className="animate-pulse" />
+                  AI Fix with J.O.E.
+                </button>
+              ) : (
+                <button className="btn-primary" type="button">
+                  Mark as Resolved
+                </button>
+              )}
             </div>
           </div>
         }
@@ -947,6 +1000,192 @@ export default function FindingsView() {
                 <span>Detected: {new Date(selectedFinding.timestamp).toLocaleString()}</span>
               </div>
             </div>
+
+            {/* AI Fix Panel */}
+            {showAiFix && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="border-t border-dws-border pt-6 mt-6"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="font-semibold text-white flex items-center gap-2">
+                    <Bot className="text-joe-blue" size={20} />
+                    <span className="bg-gradient-to-r from-joe-blue to-purple-500 bg-clip-text text-transparent">
+                      J.O.E. AI-Powered Remediation
+                    </span>
+                  </h4>
+                  <button
+                    onClick={closeAiFix}
+                    className="text-gray-500 hover:text-white text-sm"
+                    type="button"
+                  >
+                    Close AI Fix
+                  </button>
+                </div>
+
+                {isGeneratingFix ? (
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <div className="relative">
+                      <Sparkles className="text-joe-blue animate-pulse" size={48} />
+                      <div className="absolute inset-0 animate-ping">
+                        <Sparkles className="text-purple-500 opacity-50" size={48} />
+                      </div>
+                    </div>
+                    <p className="text-gray-400 mt-4 animate-pulse">J.O.E. is analyzing the vulnerability...</p>
+                    <p className="text-gray-500 text-sm mt-2">Consulting Ollama AI for optimal remediation</p>
+                  </div>
+                ) : currentAiFix ? (
+                  <div className="space-y-6">
+                    {/* AI Analysis Header */}
+                    <div className="glass-card p-4 bg-gradient-to-r from-joe-blue/10 to-purple-600/10 border border-joe-blue/30">
+                      <div className="flex items-start gap-3">
+                        <Bot className="text-joe-blue mt-1" size={20} />
+                        <div>
+                          <p className="text-gray-300">{currentAiFix.explanation}</p>
+                          <div className="flex items-center gap-4 mt-3">
+                            <span className="text-xs text-gray-500">
+                              Confidence: <span className="text-joe-blue font-semibold">{(currentAiFix.confidence * 100).toFixed(0)}%</span>
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              Effort: <span className={`font-semibold ${currentAiFix.estimatedEffort === 'low' ? 'text-dws-green' : currentAiFix.estimatedEffort === 'medium' ? 'text-alert-warning' : 'text-alert-high'}`}>
+                                {currentAiFix.estimatedEffort.toUpperCase()}
+                              </span>
+                            </span>
+                            {currentAiFix.autoFixAvailable && (
+                              <span className="text-xs bg-dws-green/20 text-dws-green px-2 py-0.5 rounded-full">
+                                Auto-fix available
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Remediation Steps */}
+                    <div>
+                      <h5 className="font-semibold text-white mb-3 flex items-center gap-2">
+                        <BookOpen size={16} className="text-joe-blue" />
+                        Remediation Steps
+                      </h5>
+                      <div className="space-y-2">
+                        {currentAiFix.steps.map((step, i) => (
+                          <div key={i} className="flex items-start gap-3 p-3 bg-dws-dark rounded-lg">
+                            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-joe-blue/20 text-joe-blue text-sm flex items-center justify-center font-semibold">
+                              {i + 1}
+                            </span>
+                            <p className="text-gray-300 text-sm">{step}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Code Changes */}
+                    <div>
+                      <h5 className="font-semibold text-white mb-3 flex items-center gap-2">
+                        <Terminal size={16} className="text-joe-blue" />
+                        Code Changes
+                      </h5>
+                      <div className="space-y-4">
+                        {currentAiFix.codeChanges.map((change, i) => (
+                          <div key={i} className="border border-dws-border rounded-lg overflow-hidden">
+                            <div className="bg-dws-card px-4 py-2 flex items-center justify-between border-b border-dws-border">
+                              <span className="text-sm font-mono text-gray-400">{change.file}</span>
+                              <button
+                                onClick={() => handleCopyCode(change.after, `code-${i}`)}
+                                className="text-gray-500 hover:text-joe-blue text-sm flex items-center gap-1"
+                                type="button"
+                              >
+                                {copiedCode === `code-${i}` ? (
+                                  <>
+                                    <CheckCircle size={14} className="text-dws-green" />
+                                    <span className="text-dws-green">Copied!</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy size={14} />
+                                    Copy
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                            <div className="grid grid-cols-2 divide-x divide-dws-border">
+                              <div className="p-4 bg-alert-critical/5">
+                                <p className="text-xs text-alert-critical mb-2 font-semibold">BEFORE (Vulnerable)</p>
+                                <pre className="text-xs text-gray-400 font-mono whitespace-pre-wrap overflow-x-auto">
+                                  {change.before}
+                                </pre>
+                              </div>
+                              <div className="p-4 bg-dws-green/5">
+                                <p className="text-xs text-dws-green mb-2 font-semibold">AFTER (Secure)</p>
+                                <pre className="text-xs text-gray-300 font-mono whitespace-pre-wrap overflow-x-auto">
+                                  {change.after}
+                                </pre>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Commands */}
+                    {currentAiFix.commands && currentAiFix.commands.length > 0 && (
+                      <div>
+                        <h5 className="font-semibold text-white mb-3 flex items-center gap-2">
+                          <Play size={16} className="text-joe-blue" />
+                          Required Commands
+                        </h5>
+                        <div className="space-y-2">
+                          {currentAiFix.commands.map((cmd, i) => (
+                            <div key={i} className="flex items-center justify-between p-3 bg-dws-dark rounded-lg font-mono text-sm">
+                              <code className="text-joe-blue">{cmd}</code>
+                              <button
+                                onClick={() => handleCopyCode(cmd, `cmd-${i}`)}
+                                className="text-gray-500 hover:text-joe-blue"
+                                type="button"
+                              >
+                                {copiedCode === `cmd-${i}` ? <CheckCircle size={14} className="text-dws-green" /> : <Copy size={14} />}
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Apply Fix Button */}
+                    {currentAiFix.autoFixAvailable && (
+                      <div className="flex items-center justify-center pt-4 border-t border-dws-border">
+                        {fixApplied ? (
+                          <div className="flex items-center gap-2 text-dws-green">
+                            <CheckCircle size={20} />
+                            <span className="font-semibold">Fix Applied Successfully!</span>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={handleApplyFix}
+                            disabled={isApplyingFix}
+                            className="btn-primary flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-dws-green to-joe-blue hover:from-dws-green/80 hover:to-joe-blue/80"
+                            type="button"
+                          >
+                            {isApplyingFix ? (
+                              <>
+                                <Sparkles size={18} className="animate-spin" />
+                                Applying Fix...
+                              </>
+                            ) : (
+                              <>
+                                <Wand2 size={18} />
+                                Apply Fix Automatically
+                              </>
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+              </motion.div>
+            )}
           </div>
         )}
       </Modal>
