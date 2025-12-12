@@ -29,7 +29,7 @@ export interface OllamaModel {
 const OLLAMA_BASE_URL = 'http://localhost:11434';
 
 class OllamaService {
-  private currentModel: string = 'llama3.2';
+  private currentModel: string = 'mistral';
   private abortController: AbortController | null = null;
 
   /**
@@ -270,6 +270,237 @@ class OllamaService {
     return this.chat(
       `Suggest a fix for this ${vulnerability} vulnerability in ${language}:`,
       `\`\`\`${language}\n${codeSnippet}\n\`\`\``
+    );
+  }
+
+  // ========================================
+  // KUBERNETES SECURITY AI ANALYSIS
+  // Reference: CIS Benchmark v1.8, NSA/CISA Guide, NIST SP 800-190
+  // ========================================
+
+  /**
+   * Deep dive analysis of Kubernetes security findings
+   * Maps to MITRE ATT&CK for Containers
+   */
+  async analyzeK8sFinding(finding: {
+    id: string;
+    type: string;
+    title: string;
+    severity: string;
+    description: string;
+    remediation?: string;
+  }): Promise<string> {
+    const k8sSecurityPrompt = `You are J.O.E., an expert Kubernetes security analyst with deep knowledge of:
+- CIS Kubernetes Benchmark v1.8 (Center for Internet Security)
+- NSA/CISA Kubernetes Hardening Guide v1.2 (2022)
+- NIST SP 800-190 (Container Security Guide)
+- MITRE ATT&CK for Containers
+- Pod Security Standards (PSS)
+
+Analyze security findings and provide actionable intelligence.`;
+
+    return this.chat(
+      `Analyze this Kubernetes security finding and provide:
+1. **Risk Assessment**: Severity justification and potential impact
+2. **Attack Vector**: How this could be exploited (map to MITRE ATT&CK)
+3. **Blast Radius**: What resources/data could be compromised
+4. **Remediation Steps**: Specific kubectl commands or YAML changes
+5. **Prevention**: How to prevent this in CI/CD pipelines
+6. **Compliance**: Which standards this violates (CIS, NSA/CISA, NIST)
+
+Finding: [${finding.severity.toUpperCase()}] ${finding.title}
+Type: ${finding.type}
+Description: ${finding.description}
+Current Remediation Guidance: ${finding.remediation || 'None provided'}`,
+      undefined,
+      k8sSecurityPrompt
+    );
+  }
+
+  /**
+   * Analyze RBAC configuration for attack paths
+   * Reference: NSA/CISA Guide Section 4 - Authentication and Authorization
+   */
+  async analyzeRBAC(rbacData: {
+    overprivileged: Array<{ subject: string; permissions: string[]; risk: string }>;
+    clusterAdminCount: number;
+    wildcardPermissions: number;
+  }): Promise<string> {
+    const context = `
+RBAC Analysis Data:
+- Cluster-admin bindings: ${rbacData.clusterAdminCount}
+- Wildcard permission roles: ${rbacData.wildcardPermissions}
+- Overprivileged accounts: ${rbacData.overprivileged.length}
+
+Overprivileged Details:
+${rbacData.overprivileged.map(a => `  - ${a.subject}: ${a.permissions.join(', ')} [${a.risk}]`).join('\n')}`;
+
+    return this.chat(
+      `Perform an RBAC security analysis based on NSA/CISA Kubernetes Hardening Guide Section 4.
+
+Provide:
+1. **Risk Summary**: Overall RBAC security posture
+2. **Attack Paths**: How overprivileged accounts could be exploited
+3. **Privilege Escalation Risks**: Potential paths from low to high privilege
+4. **Lateral Movement**: How compromised accounts could pivot
+5. **Remediation Priority**: Which accounts to fix first and why
+6. **Least Privilege Recommendations**: Specific role changes needed
+7. **Audit Commands**: kubectl commands to monitor RBAC usage`,
+      context
+    );
+  }
+
+  /**
+   * Analyze Pod Security Standards violations
+   * Reference: Kubernetes PSS (Privileged, Baseline, Restricted)
+   */
+  async analyzePodSecurity(violations: Array<{
+    namespace: string;
+    pod: string;
+    violations: string[];
+    severity: string;
+  }>): Promise<string> {
+    const context = violations.map(v =>
+      `Pod: ${v.namespace}/${v.pod} [${v.severity}]\n  Violations: ${v.violations.join(', ')}`
+    ).join('\n\n');
+
+    return this.chat(
+      `Analyze these Pod Security Standards violations against NIST SP 800-190 container security guidelines.
+
+Provide for each critical/high violation:
+1. **Security Impact**: Why this is dangerous
+2. **Container Escape Risk**: Could this lead to node compromise?
+3. **YAML Fix**: Exact securityContext changes needed
+4. **Admission Controller**: OPA/Gatekeeper or Kyverno policy to prevent
+5. **Hardening Checklist**: Additional security measures`,
+      context
+    );
+  }
+
+  /**
+   * Analyze container image vulnerabilities
+   * Reference: NIST SP 800-190 Section 4.3 - Image Vulnerabilities
+   */
+  async analyzeContainerVulnerabilities(images: Array<{
+    image: string;
+    critical: number;
+    high: number;
+    findings?: Array<{ id: string; severity: string; title: string; fixedVersion?: string }>;
+  }>): Promise<string> {
+    const context = images.map(img =>
+      `Image: ${img.image}
+  Critical: ${img.critical}, High: ${img.high}
+  Top Findings: ${img.findings?.slice(0, 3).map(f => `${f.id} - ${f.title}`).join('; ') || 'N/A'}`
+    ).join('\n\n');
+
+    return this.chat(
+      `Analyze these container image vulnerabilities per NIST SP 800-190.
+
+Provide:
+1. **Priority Ranking**: Which images to update first based on risk
+2. **Exploit Availability**: Are these vulnerabilities actively exploited?
+3. **Base Image Recommendations**: Suggest more secure base images
+4. **Patching Strategy**: Steps to update images in production
+5. **Registry Security**: Recommendations for image signing and scanning
+6. **Runtime Protection**: Falco rules or AppArmor profiles to mitigate`,
+      context
+    );
+  }
+
+  /**
+   * Analyze Network Policy gaps
+   * Reference: NSA/CISA Guide Section 5 - Network Separation
+   */
+  async analyzeNetworkPolicies(data: {
+    coverage: number;
+    unprotectedNamespaces: string[];
+    defaultDenyCount: number;
+  }): Promise<string> {
+    const context = `
+Network Policy Coverage: ${data.coverage}%
+Default Deny Policies: ${data.defaultDenyCount}
+Unprotected Namespaces: ${data.unprotectedNamespaces.join(', ') || 'None'}`;
+
+    return this.chat(
+      `Analyze this Kubernetes network segmentation against NSA/CISA Section 5 guidelines.
+
+Provide:
+1. **Segmentation Score**: Rate the current network isolation
+2. **Lateral Movement Risk**: How easily could an attacker move between pods?
+3. **Recommended Policies**: NetworkPolicy YAML for each unprotected namespace
+4. **Microsegmentation Strategy**: How to implement zero-trust networking
+5. **Egress Control**: Recommendations for outbound traffic restrictions
+6. **Service Mesh**: When to consider Istio/Linkerd for mTLS`,
+      context
+    );
+  }
+
+  /**
+   * Generate attack path analysis combining multiple findings
+   * Reference: MITRE ATT&CK for Containers
+   */
+  async analyzeAttackPaths(findings: {
+    cis: Array<{ id: string; title: string; severity: string }>;
+    rbac: Array<{ subject: string; risk: string }>;
+    pss: Array<{ pod: string; violations: string[] }>;
+    network: { coverage: number };
+  }): Promise<string> {
+    const context = `
+CIS Failures: ${findings.cis.filter(f => f.severity === 'critical' || f.severity === 'high').length}
+RBAC Issues: ${findings.rbac.length} overprivileged accounts
+PSS Violations: ${findings.pss.length} non-compliant pods
+Network Coverage: ${findings.network.coverage}%`;
+
+    return this.chat(
+      `Map potential attack paths through this Kubernetes cluster using MITRE ATT&CK for Containers framework.
+
+For each attack path, provide:
+1. **Initial Access**: How attacker gets in (TA0001)
+2. **Execution**: Running malicious code (TA0002)
+3. **Persistence**: Maintaining access (TA0003)
+4. **Privilege Escalation**: Getting higher privileges (TA0004)
+5. **Defense Evasion**: Avoiding detection (TA0005)
+6. **Credential Access**: Stealing secrets (TA0006)
+7. **Lateral Movement**: Moving to other pods/nodes (TA0008)
+8. **Impact**: Final objective (TA0040)
+
+Then provide a prioritized remediation roadmap to close these attack paths.`,
+      context
+    );
+  }
+
+  /**
+   * Generate overall cluster security assessment
+   */
+  async generateClusterSecurityReport(scanResults: {
+    complianceScore: number;
+    cisPassRate: number;
+    criticalFindings: number;
+    highFindings: number;
+    privilegedPods: number;
+    networkCoverage: number;
+  }): Promise<string> {
+    const context = `
+Cluster Security Metrics:
+- Overall Compliance Score: ${scanResults.complianceScore}%
+- CIS Benchmark Pass Rate: ${scanResults.cisPassRate}%
+- Critical Findings: ${scanResults.criticalFindings}
+- High Findings: ${scanResults.highFindings}
+- Privileged Pods: ${scanResults.privilegedPods}
+- Network Policy Coverage: ${scanResults.networkCoverage}%`;
+
+    return this.chat(
+      `Generate an executive security assessment for this Kubernetes cluster.
+
+Include:
+1. **Security Posture Rating**: Grade (A-F) with justification
+2. **DoD Readiness**: Is this cluster ready for DoD workloads? What's missing?
+3. **Top 5 Risks**: Most critical issues to address immediately
+4. **Compliance Gaps**: Specific CIS/NIST/NSA controls not met
+5. **30-Day Remediation Plan**: Prioritized action items
+6. **Continuous Monitoring**: What to track going forward
+7. **Tool Recommendations**: Additional security tools to deploy`,
+      context
     );
   }
 }

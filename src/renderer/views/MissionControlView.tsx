@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Modal from '../components/common/Modal';
+import MermaidDiagram, { JOE_ARCHITECTURE_DIAGRAM, JOE_AGENT_FLOW_DIAGRAM } from '../components/common/MermaidDiagram';
 import {
   Rocket,
   Shield,
@@ -23,7 +24,8 @@ import {
   TrendingUp,
   Clock,
   CheckCircle,
-  AlertTriangle
+  AlertTriangle,
+  GitBranch
 } from 'lucide-react';
 import {
   JOE_IDENTITY,
@@ -300,12 +302,34 @@ export default function MissionControlView() {
             exit={{ opacity: 0, y: -20 }}
             className="space-y-6"
           >
-            {/* Architecture Diagram */}
+            {/* Architecture Diagram - Mermaid */}
             <div className="glass-card p-6">
-              <h2 className="text-lg font-semibold text-white mb-4">System Architecture</h2>
-              <pre className="text-joe-blue text-sm font-mono bg-dws-dark p-4 rounded-lg overflow-x-auto">
-                {SYSTEM_ARCHITECTURE.diagram}
-              </pre>
+              <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <GitBranch className="text-joe-blue" size={20} />
+                System Architecture
+              </h2>
+              <div className="bg-dws-dark p-6 rounded-lg">
+                <MermaidDiagram
+                  chart={JOE_ARCHITECTURE_DIAGRAM}
+                  id="joe-arch-diagram"
+                  className="min-h-[400px]"
+                />
+              </div>
+            </div>
+
+            {/* Agent Data Flow Diagram */}
+            <div className="glass-card p-6">
+              <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <Network className="text-dws-green" size={20} />
+                Agent Data Flow
+              </h2>
+              <div className="bg-dws-dark p-6 rounded-lg">
+                <MermaidDiagram
+                  chart={JOE_AGENT_FLOW_DIAGRAM}
+                  id="joe-agent-flow"
+                  className="min-h-[300px]"
+                />
+              </div>
             </div>
 
             {/* Four Planes */}

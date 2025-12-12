@@ -12,18 +12,26 @@ import {
   Users,
   ChevronLeft,
   ChevronRight,
-  Rocket
+  Rocket,
+  Container,
+  GitlabIcon,
+  Target,
+  Crosshair
 } from 'lucide-react';
 import { useState } from 'react';
 
 const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/findings', label: 'Security Findings', icon: ShieldAlert },
-  { path: '/sbom', label: 'SBOM Explorer', icon: Package },
+  { path: '/threat-intel', label: 'Threat Intelligence', icon: Target },
+  { path: '/kubernetes', label: 'Kubernetes Security', icon: Container },
+  { path: '/gitlab', label: 'GitLab Security', icon: GitlabIcon },
+  { path: '/supply-chain', label: 'Supply Chain', icon: Package },
   { path: '/compliance', label: 'Compliance', icon: ClipboardCheck },
   { path: '/pipeline', label: 'Pipeline Security', icon: GitBranch },
   { path: '/ai-assistant', label: 'AI Assistant', icon: Bot },
   { path: '/mission-control', label: 'Mission Control', icon: Rocket },
+  { path: '/attack-surface', label: 'Attack Surface', icon: Crosshair },
   { path: '/reports', label: 'Reports', icon: FileText }
 ];
 

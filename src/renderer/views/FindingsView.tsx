@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   Search,
@@ -91,8 +91,8 @@ const aiFixes: Record<string, AiFix> = {
         file: 'src/renderer/store/authStore.ts',
         language: 'typescript',
         before: `const MOCK_USERS = [
-  { username: 'mhoch', password: 'admin123', role: 'admin' },
-  { username: 'jscholer', password: 'user123', role: 'user' }
+  { username: 'mhoch', password: '[REDACTED]', role: 'admin' },
+  { username: 'jscholer', password: '[REDACTED]', role: 'user' }
 ];`,
         after: `// Remove hardcoded credentials - integrate with SSO
 import { ipcRenderer } from 'electron';
@@ -388,7 +388,7 @@ const mockFindings: Finding[] = [
     file: 'src/renderer/store/authStore.ts',
     line: 15,
     cweId: 'CWE-798',
-    description: 'Development credentials (mhoch/admin123, jscholer/user123) are hardcoded in the authentication store. These should be removed before production deployment.',
+    description: 'Development credentials are hardcoded in the authentication store. These should be removed before production deployment.',
     recommendation: 'Remove hardcoded credentials. Implement secure credential storage using electron-store with encryption or integrate with enterprise SSO/LDAP.',
     timestamp: new Date(Date.now() - 1800000).toISOString(),
     status: 'open',
@@ -515,6 +515,11 @@ export default function FindingsView() {
   const [selectedFinding, setSelectedFinding] = useState<Finding | null>(null);
   const [isExporting, setIsExporting] = useState(false);
 
+  // Live scanning states
+  const [findings, setFindings] = useState<Finding[]>(mockFindings);
+  const [isScanning, setIsScanning] = useState(false);
+  const [lastScanTime, setLastScanTime] = useState<string | null>(null);
+
   // AI Fix states
   const [showAiFix, setShowAiFix] = useState(false);
   const [isGeneratingFix, setIsGeneratingFix] = useState(false);
@@ -523,7 +528,83 @@ export default function FindingsView() {
   const [isApplyingFix, setIsApplyingFix] = useState(false);
   const [fixApplied, setFixApplied] = useState(false);
 
-  const filteredFindings = mockFindings.filter(finding => {
+  // Scanner finding type from the electron API
+  interface ScannerFinding {
+    title: string;
+    severity: 'critical' | 'high' | 'medium' | 'low' | 'info';
+    tool: string;
+    file?: string;
+    line?: number;
+    description?: string;
+    remediation?: string;
+    timestamp: string;
+  }
+
+  interface ScanResults {
+    riskScore: { overall: number; critical: number; high: number; medium: number; low: number; info: number };
+    compliance: { framework: string; score: number; level: number; totalControls: number; compliant: number; partiallyCompliant: number; nonCompliant: number; notAssessed: number };
+    sbomStats: { totalComponents: number; libraries: number; frameworks: number; vulnerableComponents: number; lastGenerated: string | null };
+    findings: ScannerFinding[];
+    scanTime: string;
+  }
+
+  // Run security scan using J.O.E.'s real scanner
+  const runSecurityScan = useCallback(async () => {
+    setIsScanning(true);
+    try {
+      console.log('[J.O.E. Findings] Running security scan...');
+      // Type assertion for the electron API
+      const api = window.electronAPI as { security?: { runAudit: () => Promise<ScanResults> } } | undefined;
+      if (!api?.security?.runAudit) {
+        throw new Error('Security API not available');
+      }
+      const results = await api.security.runAudit();
+      console.log('[J.O.E. Findings] Scan complete:', results);
+
+      // Transform scanner results to Finding format
+      const liveFindings: Finding[] = results.findings.map((f: ScannerFinding, index: number) => ({
+        id: `live-${index + 1}`,
+        title: f.title,
+        severity: (f.severity === 'info' ? 'low' : f.severity) as Finding['severity'],
+        tool: f.tool,
+        file: f.file || 'N/A',
+        line: f.line || 0,
+        description: f.description || f.title,
+        recommendation: f.remediation || 'Review and remediate this finding.',
+        timestamp: f.timestamp,
+        status: 'open' as const,
+        cweId: f.title.includes('nodeIntegration') ? 'CWE-94' :
+               f.title.includes('credentials') ? 'CWE-798' :
+               f.title.includes('SSRF') || f.title.includes('endpoint') ? 'CWE-918' :
+               f.title.includes('CSP') || f.title.includes('XSS') ? 'CWE-79' : undefined,
+        cvss: f.severity === 'critical' ? 9.1 :
+              f.severity === 'high' ? 7.5 :
+              f.severity === 'medium' ? 5.3 : 3.0,
+        epss: f.severity === 'critical' ? 0.85 :
+              f.severity === 'high' ? 0.5 :
+              f.severity === 'medium' ? 0.2 : 0.05
+      }));
+
+      // Always use live scan results - empty means 100% secure!
+      setFindings(liveFindings);
+      setLastScanTime(results.scanTime);
+      console.log(`[J.O.E. Findings] Found ${liveFindings.length} vulnerabilities`);
+    } catch (error) {
+      console.error('[J.O.E. Findings] Scan error:', error);
+      // Only fall back to mock data on scan failure
+      console.log('[J.O.E. Findings] Falling back to self-assessment findings');
+      setFindings(mockFindings);
+    } finally {
+      setIsScanning(false);
+    }
+  }, []);
+
+  // Run scan on mount
+  useEffect(() => {
+    runSecurityScan();
+  }, [runSecurityScan]);
+
+  const filteredFindings = findings.filter(finding => {
     const matchesSearch = finding.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       finding.file.toLowerCase().includes(searchQuery.toLowerCase()) ||
       finding.tool.toLowerCase().includes(searchQuery.toLowerCase());
@@ -564,6 +645,14 @@ export default function FindingsView() {
     setIsExporting(true);
     await new Promise(resolve => setTimeout(resolve, 1500));
     setIsExporting(false);
+  };
+
+  // Mark a finding as resolved and remove it from the list
+  const handleMarkResolved = (findingId: string) => {
+    setFindings(prev => prev.filter(f => f.id !== findingId));
+    setSelectedFinding(null);
+    closeAiFix();
+    console.log(`[J.O.E.] Finding ${findingId} marked as resolved and removed`);
   };
 
   // AI Fix generation - uses Ollama to analyze and generate fixes
@@ -609,10 +698,10 @@ export default function FindingsView() {
   };
 
   const severityCounts = {
-    critical: mockFindings.filter(f => f.severity === 'critical').length,
-    high: mockFindings.filter(f => f.severity === 'high').length,
-    medium: mockFindings.filter(f => f.severity === 'medium').length,
-    low: mockFindings.filter(f => f.severity === 'low').length
+    critical: findings.filter(f => f.severity === 'critical').length,
+    high: findings.filter(f => f.severity === 'high').length,
+    medium: findings.filter(f => f.severity === 'medium').length,
+    low: findings.filter(f => f.severity === 'low').length
   };
 
   return (
@@ -624,7 +713,15 @@ export default function FindingsView() {
             <Bug className="text-joe-blue" />
             Security Findings
           </h1>
-          <p className="text-gray-400 mt-1">Review and remediate security vulnerabilities</p>
+          <p className="text-gray-400 mt-1">
+            Review and remediate security vulnerabilities
+            {lastScanTime && (
+              <span className="ml-3 text-sm text-joe-blue">
+                <Clock size={12} className="inline mr-1" />
+                Last scan: {new Date(lastScanTime).toLocaleTimeString()}
+              </span>
+            )}
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -636,9 +733,14 @@ export default function FindingsView() {
             <Download size={16} className={isExporting ? 'animate-bounce' : ''} />
             {isExporting ? 'Exporting...' : 'Export'}
           </button>
-          <button className="btn-primary flex items-center gap-2" type="button">
-            <RefreshCw size={16} />
-            Rescan
+          <button
+            onClick={runSecurityScan}
+            disabled={isScanning}
+            className="btn-primary flex items-center gap-2"
+            type="button"
+          >
+            <RefreshCw size={16} className={isScanning ? 'animate-spin' : ''} />
+            {isScanning ? 'Scanning...' : 'Rescan'}
           </button>
         </div>
       </div>
@@ -717,8 +819,18 @@ export default function FindingsView() {
         {filteredFindings.length === 0 ? (
           <div className="glass-card p-8 text-center">
             <Shield className="mx-auto text-dws-green mb-4" size={48} />
-            <p className="text-white font-medium">No findings match your criteria</p>
-            <p className="text-gray-500 text-sm mt-1">Try adjusting your filters</p>
+            {findings.length === 0 ? (
+              <>
+                <p className="text-dws-green font-bold text-xl">100% Secure!</p>
+                <p className="text-gray-400 mt-2">J.O.E. found no security vulnerabilities</p>
+                <p className="text-gray-500 text-sm mt-1">All systems operational - Dark Wolf approved</p>
+              </>
+            ) : (
+              <>
+                <p className="text-white font-medium">No findings match your criteria</p>
+                <p className="text-gray-500 text-sm mt-1">Try adjusting your filters</p>
+              </>
+            )}
           </div>
         ) : (
           filteredFindings.map((finding, index) => {
@@ -817,7 +929,11 @@ export default function FindingsView() {
                       >
                         View Details
                       </button>
-                      <button className="btn-primary text-sm py-1.5" type="button">
+                      <button
+                        onClick={() => handleMarkResolved(finding.id)}
+                        className="btn-primary text-sm py-1.5"
+                        type="button"
+                      >
                         Mark as Resolved
                       </button>
                     </div>
@@ -876,7 +992,11 @@ export default function FindingsView() {
                   AI Fix with J.O.E.
                 </button>
               ) : (
-                <button className="btn-primary" type="button">
+                <button
+                  onClick={() => selectedFinding && handleMarkResolved(selectedFinding.id)}
+                  className="btn-primary"
+                  type="button"
+                >
                   Mark as Resolved
                 </button>
               )}

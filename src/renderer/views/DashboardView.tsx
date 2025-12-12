@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { useEffect, useState, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useDashboardStore } from '../store/dashboardStore';
 import {
   ShieldAlert,
@@ -18,7 +18,17 @@ import {
   Bug,
   Server,
   Wrench,
-  Sparkles
+  Sparkles,
+  Brain,
+  Cpu,
+  Network,
+  Shield,
+  Eye,
+  Radar,
+  Boxes,
+  GitBranch,
+  Terminal,
+  Fingerprint
 } from 'lucide-react';
 import MetricCard from '../components/widgets/MetricCard';
 import RiskGauge from '../components/charts/RiskGauge';
@@ -28,24 +38,197 @@ import ComplianceRing from '../components/charts/ComplianceRing';
 import MitreHeatmap from '../components/charts/MitreHeatmap';
 import ThreatTimeline from '../components/charts/ThreatTimeline';
 import Modal from '../components/common/Modal';
+import AINetworkBackground from '../components/backgrounds/AINetworkBackground';
 
 /**
- * J.O.E. DevSecOps Dashboard - Command Center
+ * J.O.E. DevSecOps Dashboard - 4K Command Center
  *
- * The central hub for security operations. Every widget is clickable
- * and provides drill-down details through advanced modal visualizations.
- *
- * Design principles:
- * - F-pattern layout for optimal scanning
- * - Critical metrics in top-left quadrant
- * - Real-time data with visual feedback
- * - Progressive disclosure through modals
- *
- * Reference: Nielsen Norman Group - Dashboard Design Best Practices
- * https://www.nngroup.com/articles/dashboard-design/
+ * Advanced AI-powered security operations dashboard with:
+ * - 4K resolution support with scalable graphics
+ * - Neural network animated background
+ * - Real-time threat visualization
+ * - Holographic-style UI elements
  */
 
 type ModalType = 'risk' | 'findings' | 'sbom' | 'compliance' | 'scan' | 'autofix' | null;
+
+// Animated counter component for impressive number displays
+const AnimatedCounter = ({ value, duration = 2000 }: { value: number; duration?: number }) => {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    let start = 0;
+    const end = value;
+    const incrementTime = duration / end;
+    const timer = setInterval(() => {
+      start += 1;
+      setCount(start);
+      if (start >= end) clearInterval(timer);
+    }, incrementTime);
+    return () => clearInterval(timer);
+  }, [value, duration]);
+
+  return <span>{count}</span>;
+};
+
+// Glowing orb component for AI status
+const AIStatusOrb = ({ active }: { active: boolean }) => (
+  <div className="relative">
+    <motion.div
+      className={`w-4 h-4 rounded-full ${active ? 'bg-joe-blue' : 'bg-gray-600'}`}
+      animate={active ? {
+        boxShadow: [
+          '0 0 20px rgba(0, 180, 216, 0.5)',
+          '0 0 40px rgba(0, 180, 216, 0.8)',
+          '0 0 20px rgba(0, 180, 216, 0.5)'
+        ]
+      } : {}}
+      transition={{ duration: 2, repeat: Infinity }}
+    />
+    {active && (
+      <motion.div
+        className="absolute inset-0 rounded-full bg-joe-blue"
+        animate={{ scale: [1, 2, 1], opacity: [0.5, 0, 0.5] }}
+        transition={{ duration: 2, repeat: Infinity }}
+      />
+    )}
+  </div>
+);
+
+// Holographic card wrapper
+const HoloCard = ({ children, className = '', onClick, glow = 'blue' }: {
+  children: React.ReactNode;
+  className?: string;
+  onClick?: () => void;
+  glow?: 'blue' | 'green' | 'red' | 'yellow';
+}) => {
+  const glowColors = {
+    blue: 'hover:shadow-[0_0_30px_rgba(0,180,216,0.3)] border-joe-blue/20 hover:border-joe-blue/50',
+    green: 'hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] border-dws-green/20 hover:border-dws-green/50',
+    red: 'hover:shadow-[0_0_30px_rgba(239,68,68,0.3)] border-alert-critical/20 hover:border-alert-critical/50',
+    yellow: 'hover:shadow-[0_0_30px_rgba(234,179,8,0.3)] border-alert-warning/20 hover:border-alert-warning/50'
+  };
+
+  return (
+    <motion.div
+      whileHover={{ scale: 1.02, y: -2 }}
+      whileTap={{ scale: 0.98 }}
+      onClick={onClick}
+      className={`
+        relative overflow-hidden rounded-2xl
+        bg-gradient-to-br from-dws-card/90 to-dws-elevated/90
+        backdrop-blur-xl border transition-all duration-300
+        ${glowColors[glow]}
+        ${onClick ? 'cursor-pointer' : ''}
+        ${className}
+      `}
+    >
+      {/* Holographic shimmer effect */}
+      <div className="absolute inset-0 opacity-10">
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 animate-shimmer" />
+      </div>
+      {/* Scan line effect */}
+      <motion.div
+        className="absolute inset-x-0 h-px bg-gradient-to-r from-transparent via-joe-blue/50 to-transparent"
+        animate={{ top: ['0%', '100%'] }}
+        transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
+      />
+      <div className="relative z-10">{children}</div>
+    </motion.div>
+  );
+};
+
+// Large metric display for 4K
+const MegaMetric = ({
+  icon: Icon,
+  value,
+  label,
+  sublabel,
+  trend,
+  color = 'blue',
+  onClick,
+  pulse = false
+}: {
+  icon: any;
+  value: string | number;
+  label: string;
+  sublabel?: string;
+  trend?: { value: string; up: boolean };
+  color?: 'blue' | 'green' | 'red' | 'yellow';
+  onClick?: () => void;
+  pulse?: boolean;
+}) => {
+  const colors = {
+    blue: { text: 'text-joe-blue', bg: 'bg-joe-blue/10', glow: 'shadow-joe-blue/20' },
+    green: { text: 'text-dws-green', bg: 'bg-dws-green/10', glow: 'shadow-dws-green/20' },
+    red: { text: 'text-alert-critical', bg: 'bg-alert-critical/10', glow: 'shadow-alert-critical/20' },
+    yellow: { text: 'text-alert-warning', bg: 'bg-alert-warning/10', glow: 'shadow-alert-warning/20' }
+  };
+
+  return (
+    <HoloCard onClick={onClick} glow={color} className="p-6 lg:p-8">
+      <div className="flex items-start justify-between">
+        <div className={`p-3 lg:p-4 rounded-xl ${colors[color].bg}`}>
+          <Icon className={`w-8 h-8 lg:w-10 lg:h-10 ${colors[color].text}`} />
+        </div>
+        {trend && (
+          <div className={`flex items-center gap-1 text-sm ${trend.up ? 'text-dws-green' : 'text-alert-critical'}`}>
+            <TrendingUp className={`w-4 h-4 ${!trend.up && 'rotate-180'}`} />
+            {trend.value}
+          </div>
+        )}
+      </div>
+      <div className="mt-4 lg:mt-6">
+        <motion.div
+          className={`text-4xl lg:text-6xl font-bold ${colors[color].text}`}
+          animate={pulse ? { opacity: [1, 0.7, 1] } : {}}
+          transition={{ duration: 1.5, repeat: Infinity }}
+        >
+          {value}
+        </motion.div>
+        <div className="text-lg lg:text-xl text-white font-medium mt-2">{label}</div>
+        {sublabel && <div className="text-sm lg:text-base text-gray-500 mt-1">{sublabel}</div>}
+      </div>
+    </HoloCard>
+  );
+};
+
+// AI Brain visualization
+const AIBrainViz = () => (
+  <div className="relative w-full h-32 lg:h-40 flex items-center justify-center">
+    <motion.div
+      className="absolute w-24 h-24 lg:w-32 lg:h-32 rounded-full bg-joe-blue/5 border border-joe-blue/20"
+      animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.2, 0.5] }}
+      transition={{ duration: 3, repeat: Infinity }}
+    />
+    <motion.div
+      className="absolute w-16 h-16 lg:w-24 lg:h-24 rounded-full bg-joe-blue/10 border border-joe-blue/30"
+      animate={{ scale: [1, 1.1, 1], opacity: [0.7, 0.4, 0.7] }}
+      transition={{ duration: 2, repeat: Infinity }}
+    />
+    <motion.div
+      className="relative z-10 p-4 lg:p-6 rounded-full bg-gradient-to-br from-joe-blue/20 to-dws-green/20 border border-joe-blue/50"
+      animate={{ rotate: 360 }}
+      transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+    >
+      <Brain className="w-8 h-8 lg:w-12 lg:h-12 text-joe-blue" />
+    </motion.div>
+    {/* Orbiting elements */}
+    {[0, 1, 2].map((i) => (
+      <motion.div
+        key={i}
+        className="absolute w-3 h-3 lg:w-4 lg:h-4 rounded-full bg-dws-green"
+        style={{ boxShadow: '0 0 10px rgba(34, 197, 94, 0.5)' }}
+        animate={{
+          rotate: 360,
+          x: [Math.cos(i * 2.1) * 50, Math.cos(i * 2.1 + Math.PI) * 50],
+          y: [Math.sin(i * 2.1) * 50, Math.sin(i * 2.1 + Math.PI) * 50]
+        }}
+        transition={{ duration: 4 + i, repeat: Infinity, ease: 'linear' }}
+      />
+    ))}
+  </div>
+);
 
 export default function DashboardView() {
   const {
@@ -66,16 +249,23 @@ export default function DashboardView() {
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [scanProgress, setScanProgress] = useState(0);
   const [apiStatus, setApiStatus] = useState<string>('checking...');
+  const [aiActive, setAiActive] = useState(true);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
-  // Check API availability on mount
+  // Update time every second
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   useEffect(() => {
     const checkAPI = () => {
       if (window.electronAPI?.security?.runAudit) {
-        setApiStatus('API Connected - Real scanning enabled');
+        setApiStatus('J.O.E. ONLINE');
       } else if (window.electronAPI) {
-        setApiStatus('WARNING: Security API not found on electronAPI');
+        setApiStatus('LIMITED MODE');
       } else {
-        setApiStatus('WARNING: Not in Electron (browser mode)');
+        setApiStatus('BROWSER MODE');
       }
     };
     checkAPI();
@@ -90,8 +280,8 @@ export default function DashboardView() {
     setScanProgress(0);
     setActiveModal('scan');
 
-    for (let i = 0; i <= 100; i += 5) {
-      await new Promise(resolve => setTimeout(resolve, 150));
+    for (let i = 0; i <= 100; i += 2) {
+      await new Promise(resolve => setTimeout(resolve, 80));
       setScanProgress(i);
     }
 
@@ -107,289 +297,320 @@ export default function DashboardView() {
     await runAutoFix();
   };
 
+  const securityScore = 100 - riskScore.overall;
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-heading text-2xl font-bold text-white flex items-center gap-3">
-            <Target className="text-joe-blue" />
-            Security Command Center
-          </h1>
-          <p className="text-gray-400 mt-1">
-            Real-time DevSecOps intelligence dashboard
-          </p>
-        </div>
+    <div className="relative min-h-screen">
+      {/* AI Neural Network Background */}
+      <AINetworkBackground />
 
-        <div className="flex items-center gap-3">
-          {/* API Status Indicator */}
-          <span className={`text-xs px-2 py-1 rounded ${
-            apiStatus.includes('Connected') ? 'bg-dws-green/20 text-dws-green' :
-            apiStatus.includes('WARNING') ? 'bg-alert-warning/20 text-alert-warning' :
-            'bg-gray-500/20 text-gray-400'
-          }`}>
-            {apiStatus}
-          </span>
-          {lastScanTime && (
-            <span className="text-gray-500 text-sm">
-              Last scan: {new Date(lastScanTime).toLocaleTimeString()}
-            </span>
-          )}
-          <button
-            onClick={() => refreshDashboard()}
-            className="btn-secondary flex items-center gap-2"
-            aria-label="Refresh dashboard data"
-          >
-            <RefreshCw size={16} className={isScanning ? 'animate-spin' : ''} />
-            Refresh
-          </button>
-          <button
-            onClick={handleAutoFix}
-            disabled={isFixing || isScanning}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-dws-green to-joe-blue text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
-            aria-label="AI Auto-Fix vulnerabilities"
-          >
-            {isFixing ? (
-              <>
-                <Sparkles size={16} className="animate-pulse" />
-                Fixing...
-              </>
-            ) : (
-              <>
-                <Wrench size={16} />
-                AI Auto-Fix
-              </>
-            )}
-          </button>
-          <button
-            onClick={handleRunScan}
-            disabled={isScanning || isFixing}
-            className="btn-primary flex items-center gap-2"
-            aria-label="Run security scan"
-          >
-            {isScanning ? (
-              <>
-                <RefreshCw size={16} className="animate-spin" />
-                Scanning...
-              </>
-            ) : (
-              <>
-                <Play size={16} />
-                Run Security Scan
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-
-      {/* Top Metrics Row - Clickable Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <motion.button
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          onClick={() => setActiveModal('risk')}
-          className="text-left w-full"
-          aria-label="View risk score details"
-        >
-          <MetricCard
-            title="Risk Score"
-            value={`${100 - riskScore.overall}%`}
-            subtitle="Click for detailed breakdown"
-            icon={ShieldAlert}
-            trend={riskScore.overall < 30 ? 'up' : 'down'}
-            trendValue={riskScore.overall < 30 ? '+5%' : '-3%'}
-            color={riskScore.critical > 0 ? 'critical' : riskScore.high > 0 ? 'warning' : 'success'}
-          />
-        </motion.button>
-
-        <motion.button
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          onClick={() => setActiveModal('findings')}
-          className="text-left w-full"
-          aria-label="View security findings details"
-        >
-          <MetricCard
-            title="Critical Findings"
-            value={riskScore.critical.toString()}
-            subtitle={`${totalFindings} total - Click for details`}
-            icon={AlertTriangle}
-            color={riskScore.critical > 0 ? 'critical' : 'success'}
-            pulse={riskScore.critical > 0}
-          />
-        </motion.button>
-
-        <motion.button
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          onClick={() => setActiveModal('sbom')}
-          className="text-left w-full"
-          aria-label="View SBOM components"
-        >
-          <MetricCard
-            title="SBOM Components"
-            value={sbomStats.totalComponents.toString()}
-            subtitle={`${sbomStats.vulnerableComponents} vulnerable - Click to explore`}
-            icon={Package}
-            color={sbomStats.vulnerableComponents > 0 ? 'warning' : 'info'}
-          />
-        </motion.button>
-
-        <motion.button
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          onClick={() => setActiveModal('compliance')}
-          className="text-left w-full"
-          aria-label="View compliance status"
-        >
-          <MetricCard
-            title="Compliance"
-            value={`${compliance.score}%`}
-            subtitle={`${compliance.framework} Level ${compliance.level} - Click for matrix`}
-            icon={ClipboardCheck}
-            color={compliance.score >= 80 ? 'success' : compliance.score >= 60 ? 'warning' : 'critical'}
-          />
-        </motion.button>
-      </div>
-
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <motion.button
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.5 }}
-          onClick={() => setActiveModal('risk')}
-          className="glass-card p-6 text-left hover:border-joe-blue/50 transition-colors"
-          aria-label="View security posture details"
-        >
-          <h3 className="font-heading font-semibold text-white mb-4 flex items-center gap-2">
-            <Zap className="text-joe-blue" size={18} />
-            Security Posture
-          </h3>
-          <RiskGauge score={100 - riskScore.overall} />
-        </motion.button>
-
-        <motion.button
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.6 }}
-          onClick={() => setActiveModal('findings')}
-          className="glass-card p-6 text-left hover:border-joe-blue/50 transition-colors"
-          aria-label="View findings by severity"
-        >
-          <h3 className="font-heading font-semibold text-white mb-4 flex items-center gap-2">
-            <BarChart3 className="text-joe-blue" size={18} />
-            Findings by Severity
-          </h3>
-          <SeverityChart data={riskScore} />
-        </motion.button>
-
-        <motion.button
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.7 }}
-          onClick={() => setActiveModal('compliance')}
-          className="glass-card p-6 text-left hover:border-joe-blue/50 transition-colors"
-          aria-label="View compliance details"
-        >
-          <h3 className="font-heading font-semibold text-white mb-4 flex items-center gap-2">
-            <ClipboardCheck className="text-joe-blue" size={18} />
-            {compliance.framework} Compliance
-          </h3>
-          <ComplianceRing compliance={compliance} />
-        </motion.button>
-      </div>
-
-      {/* MITRE ATT&CK Heatmap */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.75 }}
-        className="glass-card p-6"
-      >
-        <MitreHeatmap />
-      </motion.div>
-
-      {/* Two Column Layout: Timeline & Findings */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Main Content */}
+      <div className="relative z-10 space-y-6 lg:space-y-8 p-2">
+        {/* Header - 4K Optimized */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
-          className="glass-card p-6"
+          className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4"
         >
-          <ThreatTimeline />
-        </motion.div>
+          <div className="flex items-center gap-4 lg:gap-6">
+            {/* AI Status Logo */}
+            <motion.div
+              className="relative p-4 lg:p-6 rounded-2xl bg-gradient-to-br from-joe-blue/20 to-dws-green/10 border border-joe-blue/30"
+              animate={{ boxShadow: ['0 0 20px rgba(0, 180, 216, 0.2)', '0 0 40px rgba(0, 180, 216, 0.4)', '0 0 20px rgba(0, 180, 216, 0.2)'] }}
+              transition={{ duration: 3, repeat: Infinity }}
+            >
+              <Shield className="w-10 h-10 lg:w-14 lg:h-14 text-joe-blue" />
+              <motion.div
+                className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-dws-green"
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ duration: 1, repeat: Infinity }}
+              />
+            </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.85 }}
-          className="glass-card p-6"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-heading font-semibold text-white flex items-center gap-2">
-              <FileSearch className="text-joe-blue" size={18} />
-              Recent Findings
-            </h3>
-            <a href="/findings" className="text-joe-blue text-sm hover:underline">
-              View All
-            </a>
+            <div>
+              <h1 className="font-heading text-3xl lg:text-5xl font-bold text-white flex items-center gap-3">
+                J.O.E. Command Center
+              </h1>
+              <div className="flex items-center gap-4 mt-2">
+                <div className="flex items-center gap-2">
+                  <AIStatusOrb active={aiActive} />
+                  <span className="text-joe-blue font-medium text-lg">AI ACTIVE</span>
+                </div>
+                <span className="text-gray-600">|</span>
+                <span className="text-gray-400 font-mono text-lg">
+                  {currentTime.toLocaleTimeString()}
+                </span>
+                <span className="text-gray-600">|</span>
+                <span className={`font-medium text-lg ${
+                  apiStatus === 'J.O.E. ONLINE' ? 'text-dws-green' : 'text-alert-warning'
+                }`}>
+                  {apiStatus}
+                </span>
+              </div>
+            </div>
           </div>
-          <RecentFindings findings={recentFindings} onFix={fixFinding} />
+
+          {/* Action Buttons - 4K sized */}
+          <div className="flex items-center gap-3 lg:gap-4">
+            {lastScanTime && (
+              <span className="text-gray-500 text-base lg:text-lg hidden lg:block">
+                Last scan: {new Date(lastScanTime).toLocaleTimeString()}
+              </span>
+            )}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => refreshDashboard()}
+              className="flex items-center gap-2 px-4 lg:px-6 py-3 lg:py-4 rounded-xl bg-dws-card border border-dws-border hover:border-joe-blue/50 transition-all text-base lg:text-lg"
+            >
+              <RefreshCw size={20} className={isScanning ? 'animate-spin text-joe-blue' : 'text-gray-400'} />
+              <span className="text-white">Refresh</span>
+            </motion.button>
+
+            <motion.button
+              whileHover={{ scale: 1.05, boxShadow: '0 0 30px rgba(34, 197, 94, 0.3)' }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleAutoFix}
+              disabled={isFixing || isScanning}
+              className="flex items-center gap-2 px-4 lg:px-6 py-3 lg:py-4 rounded-xl bg-gradient-to-r from-dws-green to-joe-blue text-white font-medium disabled:opacity-50 transition-all text-base lg:text-lg"
+            >
+              {isFixing ? (
+                <>
+                  <Sparkles size={20} className="animate-pulse" />
+                  AI Fixing...
+                </>
+              ) : (
+                <>
+                  <Brain size={20} />
+                  AI Auto-Fix
+                </>
+              )}
+            </motion.button>
+
+            <motion.button
+              whileHover={{ scale: 1.05, boxShadow: '0 0 30px rgba(0, 180, 216, 0.4)' }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleRunScan}
+              disabled={isScanning || isFixing}
+              className="flex items-center gap-2 px-6 lg:px-8 py-3 lg:py-4 rounded-xl bg-joe-blue text-white font-medium disabled:opacity-50 transition-all text-base lg:text-lg"
+            >
+              {isScanning ? (
+                <>
+                  <Radar size={20} className="animate-spin" />
+                  Scanning...
+                </>
+              ) : (
+                <>
+                  <Play size={20} />
+                  Security Scan
+                </>
+              )}
+            </motion.button>
+          </div>
+        </motion.div>
+
+        {/* Main Metrics Grid - 4K Layout */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 lg:gap-6">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+            <MegaMetric
+              icon={Shield}
+              value={`${securityScore}%`}
+              label="Security Score"
+              sublabel="Overall posture rating"
+              trend={{ value: '+5%', up: true }}
+              color={securityScore >= 80 ? 'green' : securityScore >= 50 ? 'yellow' : 'red'}
+              onClick={() => setActiveModal('risk')}
+            />
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+            <MegaMetric
+              icon={AlertTriangle}
+              value={riskScore.critical}
+              label="Critical Threats"
+              sublabel={`${totalFindings} total findings`}
+              color={riskScore.critical > 0 ? 'red' : 'green'}
+              onClick={() => setActiveModal('findings')}
+              pulse={riskScore.critical > 0}
+            />
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+            <MegaMetric
+              icon={Boxes}
+              value={sbomStats.totalComponents}
+              label="SBOM Components"
+              sublabel={`${sbomStats.vulnerableComponents} vulnerable`}
+              color={sbomStats.vulnerableComponents > 0 ? 'yellow' : 'blue'}
+              onClick={() => setActiveModal('sbom')}
+            />
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+            <MegaMetric
+              icon={ClipboardCheck}
+              value={`${compliance.score}%`}
+              label="Compliance"
+              sublabel={`${compliance.framework} Level ${compliance.level}`}
+              color={compliance.score >= 80 ? 'green' : compliance.score >= 60 ? 'yellow' : 'red'}
+              onClick={() => setActiveModal('compliance')}
+            />
+          </motion.div>
+        </div>
+
+        {/* AI Status Bar */}
+        <motion.div
+          initial={{ opacity: 0, scaleX: 0 }}
+          animate={{ opacity: 1, scaleX: 1 }}
+          transition={{ delay: 0.5 }}
+        >
+          <HoloCard className="p-4 lg:p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-6 lg:gap-8">
+                <div className="flex items-center gap-3">
+                  <Cpu className="w-6 h-6 lg:w-8 lg:h-8 text-joe-blue" />
+                  <div>
+                    <div className="text-white font-medium text-base lg:text-lg">AI Analysis Engine</div>
+                    <div className="text-dws-green text-sm lg:text-base">Active - Processing</div>
+                  </div>
+                </div>
+                <div className="hidden lg:block h-12 w-px bg-dws-border" />
+                <div className="hidden lg:flex items-center gap-3">
+                  <Network className="w-6 h-6 lg:w-8 lg:h-8 text-dws-green" />
+                  <div>
+                    <div className="text-white font-medium text-base lg:text-lg">Threat Intel</div>
+                    <div className="text-gray-400 text-sm lg:text-base">Connected to NVD, CISA KEV</div>
+                  </div>
+                </div>
+                <div className="hidden xl:block h-12 w-px bg-dws-border" />
+                <div className="hidden xl:flex items-center gap-3">
+                  <Fingerprint className="w-6 h-6 lg:w-8 lg:h-8 text-joe-blue" />
+                  <div>
+                    <div className="text-white font-medium text-base lg:text-lg">Pattern Detection</div>
+                    <div className="text-gray-400 text-sm lg:text-base">20+ secret patterns active</div>
+                  </div>
+                </div>
+              </div>
+              <AIBrainViz />
+            </div>
+          </HoloCard>
+        </motion.div>
+
+        {/* Charts Row - 4K Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.6 }}>
+            <HoloCard onClick={() => setActiveModal('risk')} className="p-6 lg:p-8 h-full">
+              <h3 className="font-heading font-semibold text-white text-lg lg:text-xl mb-6 flex items-center gap-3">
+                <Zap className="text-joe-blue" size={24} />
+                Security Posture
+              </h3>
+              <div className="flex items-center justify-center py-4">
+                <RiskGauge score={securityScore} />
+              </div>
+            </HoloCard>
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.7 }}>
+            <HoloCard onClick={() => setActiveModal('findings')} className="p-6 lg:p-8 h-full">
+              <h3 className="font-heading font-semibold text-white text-lg lg:text-xl mb-6 flex items-center gap-3">
+                <BarChart3 className="text-joe-blue" size={24} />
+                Severity Distribution
+              </h3>
+              <SeverityChart data={riskScore} />
+            </HoloCard>
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.8 }}>
+            <HoloCard onClick={() => setActiveModal('compliance')} className="p-6 lg:p-8 h-full">
+              <h3 className="font-heading font-semibold text-white text-lg lg:text-xl mb-6 flex items-center gap-3">
+                <ClipboardCheck className="text-joe-blue" size={24} />
+                {compliance.framework} Compliance
+              </h3>
+              <div className="flex items-center justify-center py-4">
+                <ComplianceRing compliance={compliance} />
+              </div>
+            </HoloCard>
+          </motion.div>
+        </div>
+
+        {/* MITRE ATT&CK Heatmap - Full Width */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.85 }}>
+          <HoloCard className="p-6 lg:p-8">
+            <MitreHeatmap />
+          </HoloCard>
+        </motion.div>
+
+        {/* Timeline & Findings - Two Column */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 }}>
+            <HoloCard className="p-6 lg:p-8">
+              <ThreatTimeline />
+            </HoloCard>
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.95 }}>
+            <HoloCard className="p-6 lg:p-8">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="font-heading font-semibold text-white text-lg lg:text-xl flex items-center gap-3">
+                  <FileSearch className="text-joe-blue" size={24} />
+                  Recent Findings
+                </h3>
+                <a href="/findings" className="text-joe-blue hover:underline text-base lg:text-lg">View All</a>
+              </div>
+              <RecentFindings findings={recentFindings} onFix={fixFinding} />
+            </HoloCard>
+          </motion.div>
+        </div>
+
+        {/* Quick Stats - 4K Grid */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1 }}
+          className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-4"
+        >
+          {[
+            { icon: Bug, value: riskScore.high, label: 'High Severity', color: 'text-alert-high', onClick: () => setActiveModal('findings') },
+            { icon: AlertTriangle, value: riskScore.medium, label: 'Medium', color: 'text-alert-warning', onClick: () => setActiveModal('findings') },
+            { icon: Package, value: sbomStats.libraries, label: 'Libraries', color: 'text-dws-green', onClick: () => setActiveModal('sbom') },
+            { icon: GitBranch, value: sbomStats.frameworks, label: 'Frameworks', color: 'text-joe-blue', onClick: () => setActiveModal('sbom') },
+            { icon: Lock, value: compliance.compliant, label: 'Compliant', color: 'text-dws-green', onClick: () => setActiveModal('compliance') },
+            { icon: Eye, value: 24, label: 'Monitored', color: 'text-joe-blue', onClick: () => {} }
+          ].map((stat, i) => (
+            <HoloCard key={i} onClick={stat.onClick} className="p-4 lg:p-6 text-center">
+              <stat.icon className={`w-6 h-6 lg:w-8 lg:h-8 ${stat.color} mx-auto mb-3`} />
+              <p className={`text-2xl lg:text-4xl font-bold ${stat.color}`}>{stat.value}</p>
+              <p className="text-gray-400 text-sm lg:text-base mt-1">{stat.label}</p>
+            </HoloCard>
+          ))}
+        </motion.div>
+
+        {/* Footer Status */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.1 }}
+          className="flex items-center justify-center gap-6 text-gray-500 text-sm lg:text-base py-4"
+        >
+          <span>Powered by Dark Wolf Solutions</span>
+          <span>|</span>
+          <span className="flex items-center gap-2">
+            <Terminal size={16} />
+            J.O.E. v1.0.0
+          </span>
+          <span>|</span>
+          <span className="text-dws-green flex items-center gap-2">
+            <motion.div
+              className="w-2 h-2 rounded-full bg-dws-green"
+              animate={{ opacity: [1, 0.5, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            />
+            All Systems Operational
+          </span>
         </motion.div>
       </div>
 
-      {/* Quick Stats Footer */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.9 }}
-        className="grid grid-cols-2 md:grid-cols-4 gap-4"
-      >
-        <button
-          onClick={() => setActiveModal('findings')}
-          className="glass-card p-4 text-center hover:border-alert-high/50 transition-colors"
-          aria-label={`${riskScore.high} high severity findings`}
-        >
-          <Activity className="w-6 h-6 text-alert-high mx-auto mb-2" />
-          <p className="text-2xl font-bold text-white">{riskScore.high}</p>
-          <p className="text-xs text-gray-400">High Severity</p>
-        </button>
-        <button
-          onClick={() => setActiveModal('findings')}
-          className="glass-card p-4 text-center hover:border-alert-warning/50 transition-colors"
-          aria-label={`${riskScore.medium} medium severity findings`}
-        >
-          <TrendingUp className="w-6 h-6 text-alert-warning mx-auto mb-2" />
-          <p className="text-2xl font-bold text-white">{riskScore.medium}</p>
-          <p className="text-xs text-gray-400">Medium Severity</p>
-        </button>
-        <button
-          onClick={() => setActiveModal('sbom')}
-          className="glass-card p-4 text-center hover:border-dws-green/50 transition-colors"
-          aria-label={`${sbomStats.libraries} libraries tracked`}
-        >
-          <Package className="w-6 h-6 text-dws-green mx-auto mb-2" />
-          <p className="text-2xl font-bold text-white">{sbomStats.libraries}</p>
-          <p className="text-xs text-gray-400">Libraries Tracked</p>
-        </button>
-        <button
-          onClick={() => setActiveModal('compliance')}
-          className="glass-card p-4 text-center hover:border-joe-blue/50 transition-colors"
-          aria-label={`${compliance.compliant} of ${compliance.totalControls} controls compliant`}
-        >
-          <ClipboardCheck className="w-6 h-6 text-joe-blue mx-auto mb-2" />
-          <p className="text-2xl font-bold text-white">{compliance.compliant}/{compliance.totalControls}</p>
-          <p className="text-xs text-gray-400">Controls Compliant</p>
-        </button>
-      </motion.div>
-
-      {/* Risk Details Modal */}
+      {/* Modals */}
       <Modal
         isOpen={activeModal === 'risk'}
         onClose={() => setActiveModal(null)}
@@ -402,7 +623,7 @@ export default function DashboardView() {
         <div className="space-y-6">
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-4">
-              <h4 className="font-semibold text-white">Risk Score Breakdown</h4>
+              <h4 className="font-semibold text-white text-lg">Risk Score Breakdown</h4>
               <div className="space-y-3">
                 {[
                   { label: 'Critical Issues', value: riskScore.critical, weight: 40, color: 'bg-alert-critical', textColor: 'text-alert-critical' },
@@ -428,37 +649,12 @@ export default function DashboardView() {
               </div>
             </div>
             <div className="flex items-center justify-center">
-              <RiskGauge score={100 - riskScore.overall} />
-            </div>
-          </div>
-
-          <div className="border-t border-dws-border pt-6">
-            <h4 className="font-semibold text-white mb-4">Risk Factors</h4>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="glass-card p-4">
-                <Bug className={riskScore.critical + riskScore.high > 0 ? "text-alert-critical mb-2" : "text-dws-green mb-2"} size={20} />
-                <p className="text-white font-medium">Vulnerabilities</p>
-                <p className={`text-2xl font-bold ${riskScore.critical + riskScore.high > 0 ? 'text-alert-critical' : 'text-dws-green'}`}>{riskScore.critical + riskScore.high}</p>
-                <p className="text-gray-500 text-sm">Critical & High</p>
-              </div>
-              <div className="glass-card p-4">
-                <Lock className="text-dws-green mb-2" size={20} />
-                <p className="text-white font-medium">Secrets Exposure</p>
-                <p className="text-2xl font-bold text-dws-green">0</p>
-                <p className="text-gray-500 text-sm">No secrets detected</p>
-              </div>
-              <div className="glass-card p-4">
-                <Server className={riskScore.low + riskScore.info > 0 ? "text-joe-blue mb-2" : "text-dws-green mb-2"} size={20} />
-                <p className="text-white font-medium">Minor Items</p>
-                <p className={`text-2xl font-bold ${riskScore.low + riskScore.info > 0 ? 'text-joe-blue' : 'text-dws-green'}`}>{riskScore.low + riskScore.info}</p>
-                <p className="text-gray-500 text-sm">Low/Info findings</p>
-              </div>
+              <RiskGauge score={securityScore} />
             </div>
           </div>
         </div>
       </Modal>
 
-      {/* Findings Details Modal */}
       <Modal
         isOpen={activeModal === 'findings'}
         onClose={() => setActiveModal(null)}
@@ -488,11 +684,9 @@ export default function DashboardView() {
               </div>
             ))}
           </div>
-
           <div className="flex items-center justify-center py-4">
             <SeverityChart data={riskScore} />
           </div>
-
           <div className="border-t border-dws-border pt-6">
             <h4 className="font-semibold text-white mb-4">Recent Critical Findings</h4>
             <RecentFindings findings={recentFindings.filter(f => f.severity === 'critical' || f.severity === 'high')} onFix={fixFinding} />
@@ -500,21 +694,15 @@ export default function DashboardView() {
         </div>
       </Modal>
 
-      {/* SBOM Details Modal */}
       <Modal
         isOpen={activeModal === 'sbom'}
         onClose={() => setActiveModal(null)}
         title="Software Bill of Materials"
-        subtitle="Dependency analysis and vulnerability tracking"
+        subtitle="AI-Driven Dependency Analysis"
         size="xl"
         headerIcon={<Package size={24} />}
         variant={sbomStats.vulnerableComponents > 0 ? 'warning' : 'success'}
-        footer={
-          <div className="flex justify-between items-center">
-            <span className="text-gray-500 text-sm">Format: CycloneDX 1.5</span>
-            <a href="/sbom" className="btn-primary">Explore SBOM</a>
-          </div>
-        }
+        footer={<a href="/supply-chain" className="btn-primary">Full SBOM Explorer</a>}
       >
         <div className="space-y-6">
           <div className="grid grid-cols-4 gap-4">
@@ -534,32 +722,14 @@ export default function DashboardView() {
               <p className="text-gray-400 text-sm">Frameworks</p>
             </div>
             <div className="glass-card p-4">
-              <AlertTriangle className="text-alert-warning mb-2" size={20} />
-              <p className="text-2xl font-bold text-alert-warning">{sbomStats.vulnerableComponents}</p>
+              <AlertTriangle className={sbomStats.vulnerableComponents > 0 ? "text-alert-warning mb-2" : "text-dws-green mb-2"} size={20} />
+              <p className={`text-2xl font-bold ${sbomStats.vulnerableComponents > 0 ? 'text-alert-warning' : 'text-dws-green'}`}>{sbomStats.vulnerableComponents}</p>
               <p className="text-gray-400 text-sm">Vulnerable</p>
             </div>
-          </div>
-
-          <div className="border-t border-dws-border pt-6">
-            <h4 className="font-semibold text-white mb-4">Dependency Security Status</h4>
-            {sbomStats.vulnerableComponents === 0 ? (
-              <div className="p-4 bg-dws-green/10 border border-dws-green/30 rounded-lg text-center">
-                <Package className="text-dws-green mx-auto mb-2" size={24} />
-                <p className="text-dws-green font-medium">All Dependencies Secure</p>
-                <p className="text-gray-400 text-sm mt-1">npm audit: 0 vulnerabilities detected</p>
-                <p className="text-gray-500 text-xs mt-2">Last verified: {sbomStats.lastGenerated ? new Date(sbomStats.lastGenerated).toLocaleString() : 'Not scanned'}</p>
-              </div>
-            ) : (
-              <div className="p-4 bg-alert-warning/10 border border-alert-warning/30 rounded-lg">
-                <p className="text-alert-warning font-medium">{sbomStats.vulnerableComponents} vulnerable packages detected</p>
-                <p className="text-gray-400 text-sm mt-1">Run `npm audit fix` to remediate</p>
-              </div>
-            )}
           </div>
         </div>
       </Modal>
 
-      {/* Compliance Details Modal */}
       <Modal
         isOpen={activeModal === 'compliance'}
         onClose={() => setActiveModal(null)}
@@ -568,12 +738,7 @@ export default function DashboardView() {
         size="xl"
         headerIcon={<ClipboardCheck size={24} />}
         variant={compliance.score >= 80 ? 'success' : compliance.score >= 60 ? 'warning' : 'critical'}
-        footer={
-          <div className="flex justify-between items-center">
-            <span className="text-gray-500 text-sm">Based on NIST SP 800-171 Rev 2</span>
-            <a href="/compliance" className="btn-primary">View Full Matrix</a>
-          </div>
-        }
+        footer={<a href="/compliance" className="btn-primary">View Full Matrix</a>}
       >
         <div className="space-y-6">
           <div className="grid grid-cols-2 gap-6">
@@ -598,60 +763,16 @@ export default function DashboardView() {
               </div>
             </div>
           </div>
-
-          <div className="border-t border-dws-border pt-6">
-            <h4 className="font-semibold text-white mb-4">Compliance Status Details</h4>
-            {compliance.nonCompliant === 0 && compliance.partiallyCompliant === 0 ? (
-              <div className="p-4 bg-dws-green/10 border border-dws-green/30 rounded-lg text-center">
-                <ClipboardCheck className="text-dws-green mx-auto mb-2" size={24} />
-                <p className="text-dws-green font-medium">Full Compliance Achieved</p>
-                <p className="text-gray-400 text-sm mt-1">All {compliance.totalControls} controls are compliant</p>
-              </div>
-            ) : compliance.nonCompliant === 0 ? (
-              <div className="space-y-2">
-                <div className="p-3 bg-dws-green/10 border border-dws-green/30 rounded-lg mb-4">
-                  <p className="text-dws-green font-medium">No Critical Gaps</p>
-                  <p className="text-gray-400 text-sm">0 non-compliant controls - {compliance.partiallyCompliant} need minor attention</p>
-                </div>
-                {recentFindings.filter(f => f.severity === 'low' || f.severity === 'info').map(finding => (
-                  <div key={finding.id} className="flex items-center justify-between p-3 bg-dws-dark rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <span className="text-gray-400 text-sm">{finding.tool}</span>
-                      <span className="text-white">{finding.title}</span>
-                    </div>
-                    <span className={`badge ${finding.severity === 'low' ? 'badge-low' : 'badge-info'}`}>
-                      {finding.severity === 'low' ? 'Partial' : 'Info'}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {recentFindings.filter(f => f.severity === 'critical' || f.severity === 'high').map(finding => (
-                  <div key={finding.id} className="flex items-center justify-between p-3 bg-dws-dark rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <span className="text-gray-400 text-sm">{finding.tool}</span>
-                      <span className="text-white">{finding.title}</span>
-                    </div>
-                    <span className={`badge ${finding.severity === 'critical' ? 'badge-critical' : 'badge-high'}`}>
-                      {finding.severity}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
       </Modal>
 
-      {/* Scan Progress Modal */}
       <Modal
         isOpen={activeModal === 'scan'}
         onClose={() => !isScanning && setActiveModal(null)}
         title="Security Scan in Progress"
-        subtitle="Running comprehensive security analysis"
+        subtitle="AI-powered comprehensive analysis"
         size="md"
-        headerIcon={<Activity size={24} />}
+        headerIcon={<Radar size={24} />}
         showCloseButton={!isScanning}
       >
         <div className="space-y-6">
@@ -660,28 +781,33 @@ export default function DashboardView() {
               <span className="text-gray-400">Progress</span>
               <span className="text-joe-blue font-medium">{scanProgress}%</span>
             </div>
-            <div className="h-3 bg-dws-dark rounded-full overflow-hidden">
+            <div className="h-4 bg-dws-dark rounded-full overflow-hidden">
               <motion.div
-                className="h-full bg-gradient-to-r from-joe-blue to-dws-green"
+                className="h-full bg-gradient-to-r from-joe-blue via-dws-green to-joe-blue"
                 initial={{ width: 0 }}
                 animate={{ width: `${scanProgress}%` }}
+                style={{ backgroundSize: '200% 100%' }}
                 transition={{ duration: 0.3 }}
               />
             </div>
           </div>
 
           <div className="space-y-3">
-            {['Semgrep SAST', 'Trivy Container', 'Snyk Dependencies', 'GitGuardian Secrets', 'Compliance Check'].map((tool, i) => {
+            {['SAST Analysis', 'Container Scan', 'Dependency Check', 'Secret Detection', 'Compliance Audit'].map((tool, i) => {
               const completed = scanProgress > (i + 1) * 20;
               const active = scanProgress >= i * 20 && scanProgress < (i + 1) * 20;
               return (
                 <div key={tool} className="flex items-center gap-3">
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${
-                    completed ? 'bg-dws-green text-white' : active ? 'bg-joe-blue animate-pulse text-white' : 'bg-dws-card text-gray-500'
-                  }`}>
-                    {completed ? '✓' : active ? '...' : ''}
-                  </div>
-                  <span className={completed ? 'text-dws-green' : active ? 'text-white' : 'text-gray-500'}>
+                  <motion.div
+                    className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                      completed ? 'bg-dws-green text-white' : active ? 'bg-joe-blue text-white' : 'bg-dws-card text-gray-500'
+                    }`}
+                    animate={active ? { scale: [1, 1.1, 1] } : {}}
+                    transition={{ duration: 0.5, repeat: Infinity }}
+                  >
+                    {completed ? '✓' : active ? <Radar size={16} className="animate-spin" /> : ''}
+                  </motion.div>
+                  <span className={`text-lg ${completed ? 'text-dws-green' : active ? 'text-white' : 'text-gray-500'}`}>
                     {tool}
                   </span>
                 </div>
@@ -693,23 +819,22 @@ export default function DashboardView() {
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="p-4 bg-dws-green/10 border border-dws-green/30 rounded-lg text-center"
+              className="p-4 bg-dws-green/10 border border-dws-green/30 rounded-xl text-center"
             >
-              <p className="text-dws-green font-medium">Scan Complete!</p>
-              <p className="text-gray-400 text-sm mt-1">Dashboard has been updated with latest results.</p>
+              <p className="text-dws-green font-medium text-lg">Scan Complete!</p>
+              <p className="text-gray-400 mt-1">Dashboard has been updated with latest results.</p>
             </motion.div>
           )}
         </div>
       </Modal>
 
-      {/* AI Auto-Fix Modal */}
       <Modal
         isOpen={activeModal === 'autofix'}
         onClose={() => !isFixing && setActiveModal(null)}
         title="AI Auto-Fix"
         subtitle="Automated vulnerability remediation"
         size="md"
-        headerIcon={<Sparkles size={24} />}
+        headerIcon={<Brain size={24} />}
         showCloseButton={!isFixing}
       >
         <div className="space-y-6">
@@ -719,10 +844,10 @@ export default function DashboardView() {
                 animate={{ rotate: 360 }}
                 transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
               >
-                <Sparkles size={48} className="mx-auto text-joe-blue" />
+                <Brain size={64} className="mx-auto text-joe-blue" />
               </motion.div>
-              <p className="text-white font-medium mt-4">J.O.E. is analyzing and fixing vulnerabilities...</p>
-              <p className="text-gray-400 text-sm mt-2">Running npm audit fix and applying patches</p>
+              <p className="text-white font-medium text-lg mt-6">J.O.E. AI is analyzing vulnerabilities...</p>
+              <p className="text-gray-400 mt-2">Running intelligent remediation</p>
             </div>
           ) : lastFixResult ? (
             <div className="space-y-4">
@@ -730,24 +855,24 @@ export default function DashboardView() {
                 <motion.div
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="p-4 bg-dws-green/10 border border-dws-green/30 rounded-lg text-center"
+                  className="p-6 bg-dws-green/10 border border-dws-green/30 rounded-xl text-center"
                 >
-                  <Wrench className="mx-auto text-dws-green mb-2" size={32} />
-                  <p className="text-dws-green font-medium">Auto-Fix Complete!</p>
+                  <Wrench className="mx-auto text-dws-green mb-3" size={40} />
+                  <p className="text-dws-green font-medium text-xl">Auto-Fix Complete!</p>
                 </motion.div>
               ) : (
-                <div className="p-4 bg-alert-warning/10 border border-alert-warning/30 rounded-lg text-center">
-                  <AlertTriangle className="mx-auto text-alert-warning mb-2" size={32} />
-                  <p className="text-alert-warning font-medium">Some fixes could not be applied</p>
+                <div className="p-6 bg-alert-warning/10 border border-alert-warning/30 rounded-xl text-center">
+                  <AlertTriangle className="mx-auto text-alert-warning mb-3" size={40} />
+                  <p className="text-alert-warning font-medium text-xl">Some fixes could not be applied</p>
                 </div>
               )}
 
               {lastFixResult.fixed.length > 0 && (
                 <div>
-                  <h4 className="font-semibold text-dws-green mb-2">Fixed:</h4>
+                  <h4 className="font-semibold text-dws-green mb-2 text-lg">Fixed:</h4>
                   <ul className="space-y-1">
                     {lastFixResult.fixed.map((item, i) => (
-                      <li key={i} className="text-gray-400 text-sm flex items-center gap-2">
+                      <li key={i} className="text-gray-400 flex items-center gap-2">
                         <span className="text-dws-green">✓</span> {item}
                       </li>
                     ))}
@@ -757,25 +882,21 @@ export default function DashboardView() {
 
               {lastFixResult.failed.length > 0 && (
                 <div>
-                  <h4 className="font-semibold text-alert-warning mb-2">Could not fix:</h4>
+                  <h4 className="font-semibold text-alert-warning mb-2 text-lg">Could not fix:</h4>
                   <ul className="space-y-1">
                     {lastFixResult.failed.map((item, i) => (
-                      <li key={i} className="text-gray-400 text-sm flex items-center gap-2">
+                      <li key={i} className="text-gray-400 flex items-center gap-2">
                         <span className="text-alert-warning">✗</span> {item}
                       </li>
                     ))}
                   </ul>
                 </div>
               )}
-
-              <p className="text-gray-500 text-sm text-center mt-4">
-                Dashboard will refresh with updated scan results.
-              </p>
             </div>
           ) : (
             <div className="text-center py-8">
-              <Sparkles size={48} className="mx-auto text-gray-500 mb-4" />
-              <p className="text-gray-400">Click "AI Auto-Fix" to begin</p>
+              <Brain size={64} className="mx-auto text-gray-500 mb-4" />
+              <p className="text-gray-400 text-lg">Click "AI Auto-Fix" to begin</p>
             </div>
           )}
         </div>

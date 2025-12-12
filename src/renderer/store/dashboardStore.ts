@@ -20,12 +20,26 @@ export interface ComplianceStatus {
   notAssessed: number;
 }
 
+export interface LibraryInfo {
+  name: string;
+  version: string;
+  type: 'dependency' | 'devDependency';
+  category: 'library' | 'framework' | 'tool';
+  license?: string;
+  description?: string;
+  hasVulnerability: boolean;
+  vulnerabilityLevel?: 'critical' | 'high' | 'medium' | 'low';
+  source: string;
+  aiAnalysis?: string;
+}
+
 export interface SbomStats {
   totalComponents: number;
   libraries: number;
   frameworks: number;
   vulnerableComponents: number;
   lastGenerated: string | null;
+  libraryDetails?: LibraryInfo[];
 }
 
 interface DashboardState {
@@ -130,7 +144,11 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
           riskScore: results.riskScore,
           lastScanTime: results.scanTime,
           compliance: results.compliance,
-          sbomStats: results.sbomStats,
+          sbomStats: {
+            ...results.sbomStats,
+            // Include library details for AI-driven analysis modal
+            libraryDetails: results.sbomStats.libraryDetails || []
+          },
           // Include FULL finding data for actionable fixes
           recentFindings: results.findings.map(f => ({
             id: f.id,

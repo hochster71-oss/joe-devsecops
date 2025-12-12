@@ -19,7 +19,8 @@ import {
   FileCode,
   Printer,
   Mail,
-  ExternalLink
+  ExternalLink,
+  FolderOpen
 } from 'lucide-react';
 
 interface Report {
@@ -132,6 +133,49 @@ export default function ReportsView() {
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [reportToDelete, setReportToDelete] = useState<Report | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportMessage, setExportMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Handle download/export
+  const handleDownloadReport = async (report: Report) => {
+    if (!window.electronAPI?.export) {
+      setExportMessage({ type: 'error', text: 'Export not available in browser mode' });
+      setTimeout(() => setExportMessage(null), 3000);
+      return;
+    }
+
+    setIsExporting(true);
+    setExportMessage(null);
+
+    try {
+      const result = await window.electronAPI.export.savePDF({
+        title: `Save ${report.name}`,
+        defaultPath: `${report.name.replace(/\s+/g, '-')}-${report.date}.pdf`,
+        reportData: {
+          reportType: report.type,
+          reportName: report.name,
+          sections: report.sections,
+          summary: report.summary,
+          generatedBy: report.generatedBy,
+          date: report.date
+        }
+      });
+
+      if (result.success) {
+        setExportMessage({ type: 'success', text: `Report saved successfully!` });
+      } else if (result.error !== 'Export cancelled') {
+        setExportMessage({ type: 'error', text: result.error || 'Export failed' });
+      }
+    } catch (error) {
+      setExportMessage({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Export failed'
+      });
+    } finally {
+      setIsExporting(false);
+      setTimeout(() => setExportMessage(null), 5000);
+    }
+  };
 
   const filteredReports = selectedType === 'all'
     ? mockReports
@@ -195,6 +239,28 @@ export default function ReportsView() {
           Generate Report
         </button>
       </div>
+
+      {/* Export Message Banner */}
+      {exportMessage && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`p-4 rounded-lg flex items-center gap-3 ${
+            exportMessage.type === 'success'
+              ? 'bg-dws-green/20 border border-dws-green/30'
+              : 'bg-alert-critical/20 border border-alert-critical/30'
+          }`}
+        >
+          {exportMessage.type === 'success' ? (
+            <CheckCircle className="text-dws-green" size={20} />
+          ) : (
+            <AlertTriangle className="text-alert-critical" size={20} />
+          )}
+          <span className={exportMessage.type === 'success' ? 'text-dws-green' : 'text-alert-critical'}>
+            {exportMessage.text}
+          </span>
+        </motion.div>
+      )}
 
       {/* Stats Cards - Clickable */}
       <div className="grid grid-cols-4 gap-4">
@@ -363,10 +429,12 @@ export default function ReportsView() {
                       </button>
                       <button
                         type="button"
-                        className="p-2 hover:bg-dws-card rounded transition-colors"
+                        onClick={() => handleDownloadReport(report)}
+                        disabled={isExporting}
+                        className="p-2 hover:bg-dws-card rounded transition-colors disabled:opacity-50"
                         title="Download"
                       >
-                        <Download size={16} className="text-joe-blue" />
+                        <Download size={16} className={isExporting ? "text-gray-500 animate-pulse" : "text-joe-blue"} />
                       </button>
                       <button
                         type="button"
@@ -410,9 +478,23 @@ export default function ReportsView() {
               <button type="button" onClick={() => setSelectedReport(null)} className="btn-secondary">
                 Close
               </button>
-              <button type="button" className="btn-primary flex items-center gap-2">
-                <Download size={16} />
-                Download PDF
+              <button
+                type="button"
+                onClick={() => selectedReport && handleDownloadReport(selectedReport)}
+                disabled={isExporting}
+                className="btn-primary flex items-center gap-2"
+              >
+                {isExporting ? (
+                  <>
+                    <Download size={16} className="animate-pulse" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Download size={16} />
+                    Download PDF
+                  </>
+                )}
               </button>
             </div>
           </div>

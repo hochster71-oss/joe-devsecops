@@ -4,7 +4,10 @@ import Shell from './components/layout/Shell';
 import LoginView from './views/LoginView';
 import DashboardView from './views/DashboardView';
 import FindingsView from './views/FindingsView';
-import SbomView from './views/SbomView';
+import ThreatIntelView from './views/ThreatIntelView';
+import KubernetesView from './views/KubernetesView';
+import GitLabView from './views/GitLabView';
+import SupplyChainView from './views/SupplyChainView';
 import ComplianceView from './views/ComplianceView';
 import PipelineView from './views/PipelineView';
 import AiAssistantView from './views/AiAssistantView';
@@ -12,6 +15,7 @@ import ReportsView from './views/ReportsView';
 import SettingsView from './views/SettingsView';
 import AdminView from './views/AdminView';
 import MissionControlView from './views/MissionControlView';
+import AttackSurfaceView from './views/AttackSurfaceView';
 import PasswordChangeModal from './components/PasswordChangeModal';
 
 // Protected Route wrapper
@@ -70,11 +74,15 @@ export default function App() {
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<DashboardView />} />
         <Route path="findings" element={<FindingsView />} />
-        <Route path="sbom" element={<SbomView />} />
+        <Route path="threat-intel" element={<ThreatIntelView />} />
+        <Route path="kubernetes" element={<KubernetesView />} />
+        <Route path="gitlab" element={<GitLabView />} />
+        <Route path="supply-chain" element={<SupplyChainView />} />
         <Route path="compliance" element={<ComplianceView />} />
         <Route path="pipeline" element={<PipelineView />} />
         <Route path="ai-assistant" element={<AiAssistantView />} />
         <Route path="mission-control" element={<MissionControlView />} />
+        <Route path="attack-surface" element={<AttackSurfaceView />} />
         <Route path="reports" element={<ReportsView />} />
         <Route path="settings" element={<SettingsView />} />
 
