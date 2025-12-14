@@ -587,7 +587,13 @@ export default function APISecurityView() {
                   {(['critical', 'high', 'medium', 'low'] as Severity[]).map((sev) => (
                     <button
                       key={sev}
-                      onClick={() => setSeverityFilter(sev, !selectedSeverities.includes(sev))}
+                      onClick={() => {
+                        // BUG-007 FIX: Properly compute new array for toggle
+                        const newFilters = selectedSeverities.includes(sev)
+                          ? selectedSeverities.filter(s => s !== sev)
+                          : [...selectedSeverities, sev];
+                        setSeverityFilter(newFilters);
+                      }}
                       className={`px-2 py-1 text-xs rounded capitalize transition-colors ${
                         selectedSeverities.includes(sev)
                           ? getSeverityBadgeColor(sev)

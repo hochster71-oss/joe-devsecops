@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Modal, { ConfirmModal } from '../components/common/Modal';
+import { ollamaService } from '../../../src/services/ollamaService';
 import {
   ClipboardCheck,
   CheckCircle,
@@ -293,12 +294,96 @@ export default function ComplianceView() {
   const [exportFormat, setExportFormat] = useState<'pdf' | 'csv' | 'json'>('pdf');
   const [filter, setFilter] = useState<'all' | 'compliant' | 'partial' | 'non-compliant'>('all');
   const [isEvaluating, setIsEvaluating] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   // AI Remediation states
   const [showRemediation, setShowRemediation] = useState(false);
   const [isGeneratingRemediation, setIsGeneratingRemediation] = useState(false);
   const [remediationContent, setRemediationContent] = useState<string>('');
   const [remediationSteps, setRemediationSteps] = useState<{step: number; action: string; completed: boolean}[]>([]);
+
+  // BUG-003 FIX: Add actual export functionality
+  const handleExportReport = async () => {
+    setIsExporting(true);
+    try {
+      const compliantCount = joeControls.filter(c => c.status === 'compliant').length;
+      const partialCount = joeControls.filter(c => c.status === 'partially-compliant').length;
+      const nonCompliantCount = joeControls.filter(c => c.status === 'non-compliant').length;
+      const score = Math.round((compliantCount + partialCount * 0.5) / joeControls.length * 100);
+
+      const reportData = {
+        title: 'CMMC 2.0 Level 1 Compliance Assessment',
+        generatedAt: new Date().toISOString(),
+        summary: {
+          overallScore: score,
+          totalControls: joeControls.length,
+          compliant: compliantCount,
+          partiallyCompliant: partialCount,
+          nonCompliant: nonCompliantCount
+        },
+        controls: joeControls.map(c => ({
+          id: c.id,
+          title: c.title,
+          status: c.status,
+          nistRef: c.nistRef,
+          description: c.description,
+          evidence: c.evidence,
+          findings: c.findings
+        }))
+      };
+
+      let content: string;
+      let fileExtension: string;
+      let mimeType: string;
+
+      if (exportFormat === 'json') {
+        content = JSON.stringify(reportData, null, 2);
+        fileExtension = 'json';
+        mimeType = 'application/json';
+      } else if (exportFormat === 'csv') {
+        // Generate CSV content
+        const headers = ['Control ID', 'Title', 'Status', 'NIST Reference', 'Findings'];
+        const rows = joeControls.map(c => [
+          c.id,
+          c.title,
+          c.status,
+          c.nistRef,
+          c.findings.join('; ')
+        ]);
+        content = [headers.join(','), ...rows.map(r => r.map(cell => `"${cell}"`).join(','))].join('\n');
+        fileExtension = 'csv';
+        mimeType = 'text/csv';
+      } else {
+        // PDF - use the export API
+        const result = await window.electronAPI?.export?.savePDF?.({
+          title: 'CMMC Compliance Report',
+          defaultPath: `cmmc-compliance-report-${new Date().toISOString().split('T')[0]}.pdf`,
+          reportData
+        });
+        if (result?.success) {
+          setShowExportModal(false);
+        }
+        setIsExporting(false);
+        return;
+      }
+
+      // For JSON/CSV, use file save dialog
+      const result = await window.electronAPI?.export?.saveFile?.({
+        title: `Export CMMC Report as ${exportFormat.toUpperCase()}`,
+        defaultPath: `cmmc-compliance-report-${new Date().toISOString().split('T')[0]}.${fileExtension}`,
+        filters: [{ name: exportFormat.toUpperCase(), extensions: [fileExtension] }],
+        content
+      });
+
+      if (result?.success) {
+        setShowExportModal(false);
+      }
+    } catch (error) {
+      console.error('Export error:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const getStatusConfig = (status: string) => {
     switch (status) {
@@ -335,16 +420,25 @@ export default function ComplianceView() {
   const nonCompliantCount = joeControls.filter(c => c.status === 'non-compliant').length;
   const score = Math.round((compliantCount + partialCount * 0.5) / joeControls.length * 100);
 
-  const handleReEvaluate = () => {
+  // BUG-004 FIX: Actually call the compliance API instead of simulating
+  const handleReEvaluate = async () => {
     setIsEvaluating(true);
     setShowReEvaluateModal(false);
-    // Simulate re-evaluation
-    setTimeout(() => {
+
+    try {
+      // Call the compliance evaluation API for each control
+      const results = await window.electronAPI?.compliance?.generateReport?.();
+      if (results) {
+        console.log('Compliance re-evaluation complete:', results);
+      }
+    } catch (error) {
+      console.error('Compliance evaluation error:', error);
+    } finally {
       setIsEvaluating(false);
-    }, 3000);
+    }
   };
 
-  // Start AI-driven remediation for a control
+  // BUG-005 FIX: Actually call Ollama AI for remediation guidance
   const handleStartRemediation = async (control: Control) => {
     setShowRemediation(true);
     setIsGeneratingRemediation(true);
@@ -355,13 +449,37 @@ export default function ComplianceView() {
       completed: r.completed
     })));
 
-    // Simulate AI analysis (in production, this calls Ollama)
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    try {
+      // Build the AI prompt for remediation guidance
+      const prompt = `You are a CMMC 2.0 compliance expert. Analyze this security control and provide detailed remediation guidance:
 
-    // Generate AI remediation guidance based on control
-    const aiGuidance = generateAiRemediationGuidance(control);
-    setRemediationContent(aiGuidance);
-    setIsGeneratingRemediation(false);
+Control ID: ${control.id}
+Title: ${control.title}
+NIST Reference: ${control.nistRef}
+Current Status: ${control.status}
+Description: ${control.description}
+
+Please provide:
+1. Technical implementation steps
+2. Code examples where applicable
+3. Verification methods
+4. Estimated effort
+
+Format the response in markdown.`;
+
+      const context = `CMMC Level 1 Compliance Assessment for J.O.E. DevSecOps Arsenal`;
+
+      // Call Ollama AI service
+      const aiResponse = await ollamaService.chat(prompt, context);
+      setRemediationContent(aiResponse || generateAiRemediationGuidance(control));
+    } catch (error) {
+      console.error('AI remediation error:', error);
+      // Fallback to static guidance if Ollama is not available
+      const aiGuidance = generateAiRemediationGuidance(control);
+      setRemediationContent(aiGuidance);
+    } finally {
+      setIsGeneratingRemediation(false);
+    }
   };
 
   // Generate AI-driven remediation guidance
@@ -991,11 +1109,16 @@ ${control.notes}
               Cancel
             </button>
             <button
-              onClick={() => setShowExportModal(false)}
-              className="btn-primary flex items-center gap-2"
+              onClick={handleExportReport}
+              disabled={isExporting}
+              className="btn-primary flex items-center gap-2 disabled:opacity-50"
             >
-              <Download size={16} />
-              Export Report
+              {isExporting ? (
+                <RefreshCw size={16} className="animate-spin" />
+              ) : (
+                <Download size={16} />
+              )}
+              {isExporting ? 'Exporting...' : 'Export Report'}
             </button>
           </div>
         }

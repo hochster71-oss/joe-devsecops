@@ -479,7 +479,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getSupportedTypes: () => ipcRenderer.invoke('iac-get-supported-types'),
 
     getRules: (iacType?: string) =>
-      ipcRenderer.invoke('iac-get-rules', iacType)
+      ipcRenderer.invoke('iac-get-rules', iacType),
+
+    // GAP-002 FIX: Add rule enable/disable methods
+    enableRule: (ruleId: string) =>
+      ipcRenderer.invoke('iac-enable-rule', ruleId),
+
+    disableRule: (ruleId: string) =>
+      ipcRenderer.invoke('iac-disable-rule', ruleId)
   },
 
   // ========================================
@@ -494,6 +501,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     scanFromUrl: (url: string) =>
       ipcRenderer.invoke('api-security-scan-url', url),
+
+    // GAP-001 FIX: Add directory scanning for batch API spec analysis
+    scanDirectory: (dirPath: string, options?: { recursive?: boolean }) =>
+      ipcRenderer.invoke('api-security-scan-directory', dirPath, options),
 
     getOWASPCategories: () =>
       ipcRenderer.invoke('api-security-get-owasp-categories'),
@@ -1429,6 +1440,9 @@ export interface ElectronAPI {
     scanFile: (filePath: string) => Promise<{ success: boolean; results?: unknown; error?: string }>;
     getSupportedTypes: () => Promise<string[]>;
     getRules: (iacType?: string) => Promise<Array<unknown>>;
+    // GAP-002 FIX: Enable/disable rule methods
+    enableRule: (ruleId: string) => Promise<{ success: boolean; error?: string }>;
+    disableRule: (ruleId: string) => Promise<{ success: boolean; error?: string }>;
   };
   // API Security Scanner
   apiSecurity: {
@@ -1468,6 +1482,8 @@ export interface ElectronAPI {
       error?: string;
     }>;
     scanFromUrl: (url: string) => Promise<{ success: boolean; results?: unknown; error?: string }>;
+    // GAP-001 FIX: Directory scanning method
+    scanDirectory: (dirPath: string, options?: { recursive?: boolean }) => Promise<{ success: boolean; results?: unknown[]; error?: string }>;
     getOWASPCategories: () => Promise<Record<string, { name: string; description: string }>>;
     getRules: () => Promise<Array<unknown>>;
   };

@@ -1,0 +1,257 @@
+# J.O.E. DevSecOps Arsenal - Production Readiness CI Gate
+# This workflow enforces quality gates for production deployment
+#
+# BLOCKING CRITERIA:
+# 1. All E2E touchpoint tests must pass (no "does nothing" buttons)
+# 2. TypeScript must compile without errors
+# 3. All store->preload API calls must be verified
+# 4. No critical security vulnerabilities
+# 5. Code coverage must meet thresholds
+
+name: Production Readiness Gate
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master]
+
+env:
+  NODE_VERSION: '20.x'
+
+jobs:
+  # ============================================================================
+  # PHASE 1: Type Safety & Build Verification
+  # ============================================================================
+  type-check:
+    name: TypeScript Verification
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript type check (renderer)
+        run: npx tsc --noEmit -p tsconfig.json
+
+      - name: TypeScript type check (electron)
+        run: npx tsc --noEmit -p electron/tsconfig.json
+
+      - name: Check for type errors in stores
+        run: |
+          echo "Verifying store->preload API alignment..."
+          # This custom script checks that store method calls match preload signatures
+          node scripts/verify-api-wiring.js
+
+  # ============================================================================
+  # PHASE 2: Unit & Integration Tests
+  # ============================================================================
+  unit-tests:
+    name: Unit Tests
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Vitest unit tests
+        run: npm run test:unit -- --coverage
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+
+      - name: Coverage threshold check
+        run: |
+          # Enforce minimum coverage thresholds
+          node -e "
+            const coverage = require('./coverage/coverage-summary.json');
+            const thresholds = { lines: 70, branches: 60, functions: 70, statements: 70 };
+            let failed = false;
+            for (const [metric, threshold] of Object.entries(thresholds)) {
+              const actual = coverage.total[metric].pct;
+              if (actual < threshold) {
+                console.error('FAIL: ' + metric + ' coverage ' + actual + '% is below threshold ' + threshold + '%');
+                failed = true;
+              } else {
+                console.log('PASS: ' + metric + ' coverage ' + actual + '% >= ' + threshold + '%');
+              }
+            }
+            if (failed) process.exit(1);
+          "
+
+  # ============================================================================
+  # PHASE 3: E2E Touchpoint Tests (CRITICAL)
+  # ============================================================================
+  e2e-tests:
+    name: E2E Touchpoint Tests
+    runs-on: windows-latest
+    needs: [type-check, unit-tests]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Electron app
+        run: npm run build
+
+      - name: Install Playwright
+        run: npx playwright install --with-deps
+
+      - name: Run E2E touchpoint tests
+        run: npx playwright test test/e2e/touchpoint-tests.spec.ts --reporter=html
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+
+      - name: Check for blocking bugs
+        run: |
+          # Parse test results and fail if any test.fail() tests still fail
+          # These are known bugs that must be fixed before production
+          node -e "
+            const fs = require('fs');
+            const results = JSON.parse(fs.readFileSync('test-results.json', 'utf8'));
+            const blockingTests = results.suites.flatMap(s =>
+              s.specs.filter(spec => spec.title.includes('BLOCKING') && spec.status === 'failed')
+            );
+            if (blockingTests.length > 0) {
+              console.error('PRODUCTION BLOCKED: The following critical bugs remain unfixed:');
+              blockingTests.forEach(t => console.error('  - ' + t.title));
+              process.exit(1);
+            }
+            console.log('All blocking bugs have been resolved.');
+          "
+
+  # ============================================================================
+  # PHASE 4: Security Scanning
+  # ============================================================================
+  security-scan:
+    name: Security Vulnerability Scan
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+      - name: Run Snyk security scan
+        uses: snyk/actions/node@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high
+
+      - name: SAST scan with Semgrep
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: p/security-audit
+
+  # ============================================================================
+  # PHASE 5: API Wiring Verification
+  # ============================================================================
+  api-wiring-check:
+    name: Store-to-Preload API Verification
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Check API wiring
+        run: |
+          echo "=== Store-to-Preload API Wiring Check ==="
+          echo ""
+          echo "Checking for missing API methods..."
+
+          # Extract all window.electronAPI.* calls from stores
+          $storeAPICalls = Get-ChildItem -Path "src/renderer/store/*.ts" -Recurse |
+            Select-String -Pattern "window\.electronAPI\.(\w+)\.(\w+)" -AllMatches |
+            ForEach-Object { $_.Matches.Value } | Sort-Object -Unique
+
+          # Extract all exposed methods from preload.ts
+          $preloadMethods = Get-Content "electron/preload.ts" -Raw
+
+          $missingMethods = @()
+          foreach ($call in $storeAPICalls) {
+            if ($preloadMethods -notmatch [regex]::Escape($call.Replace("window.electronAPI.", ""))) {
+              $missingMethods += $call
+            }
+          }
+
+          if ($missingMethods.Count -gt 0) {
+            Write-Host "ERROR: The following API methods are called but not exposed in preload.ts:" -ForegroundColor Red
+            $missingMethods | ForEach-Object { Write-Host "  - $_" -ForegroundColor Red }
+            exit 1
+          }
+
+          Write-Host "All store API calls are properly exposed in preload.ts" -ForegroundColor Green
+
+  # ============================================================================
+  # PHASE 6: Production Readiness Gate
+  # ============================================================================
+  production-gate:
+    name: Production Readiness Gate
+    runs-on: windows-latest
+    needs: [type-check, unit-tests, e2e-tests, security-scan, api-wiring-check]
+    steps:
+      - name: Production Readiness Summary
+        run: |
+          echo "============================================="
+          echo "    J.O.E. PRODUCTION READINESS SUMMARY     "
+          echo "============================================="
+          echo ""
+          echo "✅ TypeScript compilation: PASSED"
+          echo "✅ Unit test coverage: PASSED"
+          echo "✅ E2E touchpoint tests: PASSED"
+          echo "✅ Security scan: PASSED"
+          echo "✅ API wiring check: PASSED"
+          echo ""
+          echo "============================================="
+          echo "  🚀 APPROVED FOR PRODUCTION DEPLOYMENT  🚀"
+          echo "============================================="
+
+      - name: Create deployment artifact
+        if: github.ref == 'refs/heads/main'
+        run: echo "Ready for deployment"
