@@ -74,11 +74,19 @@ export interface SIEMStats {
 }
 
 // =============================================================================
+// STORE SCHEMA
+// =============================================================================
+
+interface SIEMStoreSchema {
+  siemConfigs: SIEMConfig[];
+}
+
+// =============================================================================
 // SIEM CONNECTOR SERVICE
 // =============================================================================
 
 class SIEMConnector {
-  private store: Store;
+  private store: Store<SIEMStoreSchema>;
   private eventBuffer: Map<SIEMPlatform, SecurityEvent[]> = new Map();
   private stats: Map<SIEMPlatform, SIEMStats> = new Map();
   private flushTimers: Map<SIEMPlatform, NodeJS.Timeout> = new Map();
