@@ -48,7 +48,7 @@ export default function Header() {
   };
 
   return (
-    <header className="h-10 bg-dws-darker border-b border-dws-border flex items-center justify-between px-4 titlebar-drag">
+    <header data-testid="header" className="h-10 bg-dws-darker border-b border-dws-border flex items-center justify-between px-4 titlebar-drag">
       {/* Left: App Title */}
       <div className="flex items-center gap-2 titlebar-no-drag">
         <span className="text-sm font-medium text-gray-300">
@@ -69,6 +69,7 @@ export default function Header() {
         <div ref={notifRef} className="relative">
           <button
             onClick={() => setShowNotifications(!showNotifications)}
+            data-testid="notifications-button"
             className="p-1.5 rounded hover:bg-dws-card transition-colors relative"
           >
             <Bell size={16} className="text-gray-400" />
@@ -99,6 +100,7 @@ export default function Header() {
         <div ref={menuRef} className="relative">
           <button
             onClick={() => setShowUserMenu(!showUserMenu)}
+            data-testid="user-menu-button"
             className="flex items-center gap-2 px-2 py-1 rounded hover:bg-dws-card transition-colors"
           >
             <div className="w-6 h-6 rounded-full bg-joe-blue/20 flex items-center justify-center">
@@ -123,6 +125,7 @@ export default function Header() {
               <div className="p-2">
                 <button
                   onClick={handleLogout}
+                  data-testid="logout-button"
                   className="w-full flex items-center gap-2 px-3 py-2 rounded text-left text-gray-300 hover:bg-dws-elevated transition-colors"
                 >
                   <LogOut size={16} />
@@ -137,6 +140,7 @@ export default function Header() {
         <div className="flex items-center ml-2 border-l border-dws-border pl-2">
           <button
             onClick={() => handleWindowControl('minimize')}
+            data-testid="window-minimize-button"
             className="p-1.5 rounded hover:bg-dws-card transition-colors"
             title="Minimize"
           >
@@ -144,6 +148,7 @@ export default function Header() {
           </button>
           <button
             onClick={() => handleWindowControl('maximize')}
+            data-testid="window-maximize-button"
             className="p-1.5 rounded hover:bg-dws-card transition-colors"
             title="Maximize"
           >
@@ -151,6 +156,7 @@ export default function Header() {
           </button>
           <button
             onClick={() => handleWindowControl('close')}
+            data-testid="window-close-button"
             className="p-1.5 rounded hover:bg-alert-critical transition-colors"
             title="Close"
           >

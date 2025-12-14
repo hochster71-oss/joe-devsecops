@@ -360,6 +360,7 @@ export default function DashboardView() {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => refreshDashboard()}
+              data-testid="dashboard-refresh-button"
               className="flex items-center gap-2 px-4 lg:px-6 py-3 lg:py-4 rounded-xl bg-dws-card border border-dws-border hover:border-joe-blue/50 transition-all text-base lg:text-lg"
             >
               <RefreshCw size={20} className={isScanning ? 'animate-spin text-joe-blue' : 'text-gray-400'} />
@@ -371,6 +372,7 @@ export default function DashboardView() {
               whileTap={{ scale: 0.95 }}
               onClick={handleAutoFix}
               disabled={isFixing || isScanning}
+              data-testid="dashboard-autofix-button"
               className="flex items-center gap-2 px-4 lg:px-6 py-3 lg:py-4 rounded-xl bg-gradient-to-r from-dws-green to-joe-blue text-white font-medium disabled:opacity-50 transition-all text-base lg:text-lg"
             >
               {isFixing ? (
@@ -391,6 +393,7 @@ export default function DashboardView() {
               whileTap={{ scale: 0.95 }}
               onClick={handleRunScan}
               disabled={isScanning || isFixing}
+              data-testid="dashboard-scan-button"
               className="flex items-center gap-2 px-6 lg:px-8 py-3 lg:py-4 rounded-xl bg-joe-blue text-white font-medium disabled:opacity-50 transition-all text-base lg:text-lg"
             >
               {isScanning ? (

@@ -117,6 +117,7 @@ export default function PasswordChangeModal() {
                   type={showCurrentPassword ? 'text' : 'password'}
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
+                  data-testid="current-password-input"
                   className="w-full bg-dws-dark/50 border border-dws-border rounded-xl py-3 pl-12 pr-12 text-white placeholder-gray-600 focus:outline-none focus:border-joe-blue/50 focus:ring-1 focus:ring-joe-blue/50 transition-all"
                   placeholder="Enter current password"
                   required
@@ -144,6 +145,7 @@ export default function PasswordChangeModal() {
                   type={showNewPassword ? 'text' : 'password'}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
+                  data-testid="new-password-input"
                   className="w-full bg-dws-dark/50 border border-dws-border rounded-xl py-3 pl-12 pr-12 text-white placeholder-gray-600 focus:outline-none focus:border-joe-blue/50 focus:ring-1 focus:ring-joe-blue/50 transition-all"
                   placeholder="Enter new DoD-compliant password"
                   required
@@ -199,6 +201,7 @@ export default function PasswordChangeModal() {
                   type={showConfirmPassword ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
+                  data-testid="confirm-password-input"
                   className={`w-full bg-dws-dark/50 border rounded-xl py-3 pl-12 pr-12 text-white placeholder-gray-600 focus:outline-none focus:ring-1 transition-all ${
                     confirmPassword.length > 0
                       ? passwordsMatch
@@ -227,6 +230,7 @@ export default function PasswordChangeModal() {
             <button
               type="submit"
               disabled={!canSubmit || isLoading || success}
+              data-testid="password-change-submit-button"
               className="w-full bg-gradient-to-r from-dws-green to-joe-blue hover:from-dws-green/90 hover:to-joe-blue/90 text-white font-semibold py-3.5 rounded-xl flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-lg shadow-dws-green/20"
             >
               {isLoading ? (
@@ -246,6 +250,7 @@ export default function PasswordChangeModal() {
             <button
               type="button"
               onClick={logout}
+              data-testid="password-change-cancel-button"
               className="w-full text-gray-500 hover:text-gray-300 text-sm py-2 transition-colors"
             >
               Logout and cancel

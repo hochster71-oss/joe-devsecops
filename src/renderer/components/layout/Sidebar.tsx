@@ -56,6 +56,7 @@ export default function Sidebar() {
 
   return (
     <aside
+      data-testid="sidebar"
       className={`
         ${collapsed ? 'w-20' : 'w-64'}
         h-full bg-dws-darker border-r border-dws-border
@@ -83,11 +84,12 @@ export default function Sidebar() {
       </div>
 
       {/* Main Navigation */}
-      <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto scrollbar-hide">
+      <nav data-testid="sidebar-nav" className="flex-1 py-4 px-3 space-y-1 overflow-y-auto scrollbar-hide">
         {navItems.map(({ path, label, icon: Icon }) => (
           <NavLink
             key={path}
             to={path}
+            data-testid={`nav-link-${path.replace('/', '')}`}
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200
               ${isActive
@@ -133,6 +135,7 @@ export default function Sidebar() {
         {/* Collapse Toggle */}
         <button
           onClick={() => setCollapsed(!collapsed)}
+          data-testid="sidebar-collapse-button"
           className={`
             flex items-center gap-3 px-3 py-2.5 rounded-lg w-full
             text-gray-500 hover:bg-dws-card hover:text-white transition-all duration-200
