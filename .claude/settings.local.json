@@ -45,7 +45,19 @@
       "Bash(git commit:*)",
       "Bash(docker start:*)",
       "Bash(docker ps:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(timeout /t 1)",
+      "Bash(\"c:\\Users\\micha\\JOE\\joe-devsecops\\JOE-Dark-Wolf.bat\")",
+      "Bash(timeout /t 10)",
+      "Bash(powershell -ExecutionPolicy Bypass -File \"c:\\Users\\micha\\JOE\\joe-devsecops\\scripts\\create-icon.ps1\")",
+      "Bash(del \"c:\\Users\\micha\\JOE\\joe-devsecops\\src\\renderer\\types\\electron.d.ts\")",
+      "Bash(npm test:*)",
+      "Bash(copy:*)",
+      "Bash(powershell -ExecutionPolicy Bypass -File \"c:\\Users\\micha\\JOE\\joe-devsecops\\scripts\\fix-shortcut.ps1\")",
+      "Bash(powershell -ExecutionPolicy Bypass -File:*)",
+      "Bash(powershell -ExecutionPolicy Bypass -Command \"\n# Clear Windows icon cache\nWrite-Host ''Clearing Windows icon cache...''\n$iconCache = \"\"$env:LOCALAPPDATA\\Microsoft\\Windows\\Explorer\"\"\nStop-Process -Name explorer -Force -ErrorAction SilentlyContinue\nStart-Sleep -Seconds 2\nGet-ChildItem -Path $iconCache -Filter ''iconcache*'' | Remove-Item -Force -ErrorAction SilentlyContinue\nGet-ChildItem -Path $iconCache -Filter ''thumbcache*'' | Remove-Item -Force -ErrorAction SilentlyContinue\nStart-Process explorer\nWrite-Host ''Icon cache cleared. You may need to restart your computer for changes to take effect.''\n\")",
+      "Bash(powershell:*)",
+      "Bash(find:*)"
     ]
   }
 }

@@ -115,7 +115,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Security scanning operations - REAL scans, not simulated
   security: {
     runAudit: () => ipcRenderer.invoke('security-run-audit'),
-    autoFix: () => ipcRenderer.invoke('security-auto-fix'),
+    autoFix: (findings?: Array<{ id: string; title: string; severity: string; tool: string; timestamp: string; description?: string; remediation?: string; file?: string; line?: number }>) =>
+      ipcRenderer.invoke('security-auto-fix', findings),
+    generatePoam: (findings: Array<{ id: string; title: string; severity: string; tool: string; timestamp: string; description?: string; remediation?: string; file?: string; line?: number }>) =>
+      ipcRenderer.invoke('security-generate-poam', findings),
     // Advanced scanning features
     semgrepScan: () => ipcRenderer.invoke('security-semgrep-scan'),
     dockerScan: (imageName: string) => ipcRenderer.invoke('security-docker-scan', imageName),
@@ -222,6 +225,338 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('vault-change-password', currentPassword, newPassword),
     getAuditLog: () => ipcRenderer.invoke('vault-get-audit-log'),
     export: () => ipcRenderer.invoke('vault-export')
+  },
+
+  // =============================================================================
+  // AI TOUCHPOINT SYSTEM
+  // Space-Grade Security Intelligence with Framework Citations
+  // NASA-STD-8719 | DO-178C | NIST CSF 2.0 | MITRE ATT&CK
+  // =============================================================================
+  aiTouchpoint: {
+    // Query AI for touchpoint context (non-streaming)
+    query: (context: {
+      elementType: string;
+      elementId: string;
+      dataContext: unknown;
+      requestedFrameworks: string[];
+      depth: 'tooltip' | 'panel' | 'deepdive';
+      sessionId: string;
+      timestamp: number;
+    }) => ipcRenderer.invoke('ai-touchpoint-query', context),
+
+    // Stream AI response for real-time display
+    streamQuery: (context: {
+      elementType: string;
+      elementId: string;
+      dataContext: unknown;
+      requestedFrameworks: string[];
+      depth: 'tooltip' | 'panel' | 'deepdive';
+      sessionId: string;
+      timestamp: number;
+    }) => {
+      const requestId = `stream-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      ipcRenderer.send('ai-touchpoint-stream-start', { ...context, requestId });
+
+      return {
+        onChunk: (callback: (chunk: { type: string; content: string; index: number }) => void) => {
+          const handler = (_: unknown, data: { requestId: string; chunk: { type: string; content: string; index: number } }) => {
+            if (data.requestId === requestId) {
+              callback(data.chunk);
+            }
+          };
+          ipcRenderer.on('ai-touchpoint-stream-chunk', handler);
+          return () => ipcRenderer.removeListener('ai-touchpoint-stream-chunk', handler);
+        },
+        onComplete: (callback: (response: unknown) => void) => {
+          const handler = (_: unknown, data: { requestId: string; response: unknown }) => {
+            if (data.requestId === requestId) {
+              callback(data.response);
+            }
+          };
+          ipcRenderer.on('ai-touchpoint-stream-complete', handler);
+          return () => ipcRenderer.removeListener('ai-touchpoint-stream-complete', handler);
+        },
+        onError: (callback: (error: Error) => void) => {
+          const handler = (_: unknown, data: { requestId: string; error: string }) => {
+            if (data.requestId === requestId) {
+              callback(new Error(data.error));
+            }
+          };
+          ipcRenderer.on('ai-touchpoint-stream-error', handler);
+          return () => ipcRenderer.removeListener('ai-touchpoint-stream-error', handler);
+        },
+        cancel: () => ipcRenderer.send('ai-touchpoint-stream-cancel', requestId),
+        isPaused: false,
+        pause: () => ipcRenderer.send('ai-touchpoint-stream-pause', requestId),
+        resume: () => ipcRenderer.send('ai-touchpoint-stream-resume', requestId)
+      };
+    },
+
+    // Analyze security metric
+    analyzeMetric: (metricName: string, value: number, trend: 'up' | 'down' | 'stable', context?: unknown) =>
+      ipcRenderer.invoke('ai-touchpoint-analyze-metric', { metricName, value, trend, context }),
+
+    // Generate attack path diagram
+    generateAttackPath: (vulnerability: { id: string; title: string; severity: string; description: string }) =>
+      ipcRenderer.invoke('ai-touchpoint-generate-attack-path', vulnerability)
+  },
+
+  // =============================================================================
+  // ANALYTICS & SELF-LEARNING ENGINE
+  // SQLite-powered interaction tracking for continuous improvement
+  // =============================================================================
+  analytics: {
+    // Track user interaction
+    track: (event: {
+      type: string;
+      elementType: string;
+      elementId?: string;
+      durationMs?: number;
+      context?: Record<string, unknown>;
+    }) => ipcRenderer.invoke('analytics-track', event),
+
+    // Rate AI response quality (1-5)
+    rate: (queryId: string, rating: number) =>
+      ipcRenderer.invoke('analytics-rate', queryId, rating),
+
+    // Get user behavior profile
+    getProfile: () => ipcRenderer.invoke('analytics-get-profile'),
+
+    // Get analytics insights with optional timeframe
+    getInsights: (timeframe?: { start: number; end: number }) =>
+      ipcRenderer.invoke('analytics-get-insights', timeframe),
+
+    // Get detected security patterns
+    getPatterns: (severity?: string) => ipcRenderer.invoke('analytics-get-patterns', severity),
+
+    // Get learning insights
+    getLearningInsights: () => ipcRenderer.invoke('analytics-get-learning-insights'),
+
+    // Get interaction statistics
+    getStats: () => ipcRenderer.invoke('analytics-get-stats'),
+
+    // Cleanup old data
+    cleanup: (daysToKeep?: number) => ipcRenderer.invoke('analytics-cleanup', daysToKeep)
+  },
+
+  // ========================================
+  // SPACE-GRADE COMPLIANCE API
+  // NASA-STD-8719.13 | DO-178C | Common Criteria
+  // ========================================
+  spaceCompliance: {
+    // Register project for compliance assessment
+    registerProject: (config: {
+      name: string;
+      type: 'spacecraft' | 'avionics' | 'ground-system' | 'mission-control' | 'general';
+      primaryFramework: 'NASA-STD-8719' | 'DO-178C' | 'Common-Criteria';
+      targetLevel: string;
+      description?: string;
+    }) => ipcRenderer.invoke('space-compliance-register-project', config),
+
+    // Get project details
+    getProject: (projectId: string) => ipcRenderer.invoke('space-compliance-get-project', projectId),
+
+    // List all projects
+    listProjects: () => ipcRenderer.invoke('space-compliance-list-projects'),
+
+    // NASA Safety Assessment
+    assessNASA: (params: {
+      projectName: string;
+      assessor: string;
+      hazardAnalysis: {
+        lossOfLife: boolean;
+        severeInjury: boolean;
+        missionCritical: boolean;
+        propertyDamage: 'none' | 'minor' | 'major' | 'critical';
+      };
+      safetyMetrics: {
+        hazardsIdentified: number;
+        hazardsMitigated: number;
+        openSafetyIssues: number;
+        safetyReviewsCompleted: number;
+        independentReviewsCompleted: number;
+      };
+      existingControls: string[];
+    }) => ipcRenderer.invoke('space-compliance-assess-nasa', params),
+
+    // DO-178C Assessment
+    assessDO178C: (params: {
+      projectName: string;
+      assessor: string;
+      failureCondition: 'catastrophic' | 'hazardous' | 'major' | 'minor' | 'no-effect';
+      coverageMetrics: {
+        statementCoverage: number;
+        branchCoverage: number;
+        mcdcCoverage: number;
+        requirementsCoverage: number;
+        testCaseCoverage: number;
+      };
+      documentationStatus: Record<string, boolean>;
+      verificationActivities: string[];
+    }) => ipcRenderer.invoke('space-compliance-assess-do178c', params),
+
+    // Common Criteria Assessment
+    assessCommonCriteria: (params: {
+      projectName: string;
+      assessor: string;
+      targetEAL: 'EAL-1' | 'EAL-2' | 'EAL-3' | 'EAL-4' | 'EAL-5' | 'EAL-6' | 'EAL-7';
+      assuranceComponents: Record<string, 'satisfied' | 'partial' | 'not-satisfied'>;
+      securityFunctions: string[];
+    }) => ipcRenderer.invoke('space-compliance-assess-cc', params),
+
+    // Get assessment by ID
+    getAssessment: (assessmentId: string) =>
+      ipcRenderer.invoke('space-compliance-get-assessment', assessmentId),
+
+    // List all assessments
+    listAssessments: () => ipcRenderer.invoke('space-compliance-list-assessments'),
+
+    // Get framework information
+    getFrameworkInfo: (framework: 'NASA-STD-8719' | 'DO-178C' | 'Common-Criteria') =>
+      ipcRenderer.invoke('space-compliance-get-framework-info', framework),
+
+    // Get cross-framework mappings
+    getMappings: (framework: string, controlId: string) =>
+      ipcRenderer.invoke('space-compliance-get-mappings', framework, controlId),
+
+    // Generate unified compliance report
+    generateUnifiedReport: (assessmentIds: string[]) =>
+      ipcRenderer.invoke('space-compliance-unified-report', assessmentIds)
+  },
+
+  // ========================================
+  // NOTIFICATION SERVICE API
+  // Real-time Alerts | Slack | Teams | Email
+  // ========================================
+  notifications: {
+    send: (payload: {
+      title: string;
+      message: string;
+      severity: string;
+      channels: string[];
+      metadata?: unknown;
+    }) => ipcRenderer.invoke('notification-send', payload),
+
+    configureChannel: (channel: string, config: unknown) =>
+      ipcRenderer.invoke('notification-configure-channel', channel, config),
+
+    getChannelConfig: (channel: string) =>
+      ipcRenderer.invoke('notification-get-channel-config', channel),
+
+    testChannel: (channel: string) =>
+      ipcRenderer.invoke('notification-test-channel', channel),
+
+    addRule: (rule: {
+      name: string;
+      conditions: { severity?: string[]; type?: string[]; framework?: string[] };
+      channels: string[];
+      throttleMinutes?: number;
+      enabled?: boolean;
+    }) => ipcRenderer.invoke('notification-add-rule', rule),
+
+    removeRule: (ruleId: string) =>
+      ipcRenderer.invoke('notification-remove-rule', ruleId),
+
+    getRules: () => ipcRenderer.invoke('notification-get-rules'),
+
+    processFinding: (finding: unknown) =>
+      ipcRenderer.invoke('notification-process-finding', finding)
+  },
+
+  // ========================================
+  // IAC SECURITY SCANNER API
+  // Terraform | CloudFormation | Kubernetes | Docker | Ansible
+  // ========================================
+  iac: {
+    selectDirectory: () => ipcRenderer.invoke('iac-select-directory'),
+
+    scanDirectory: (dirPath: string, options?: { recursive?: boolean }) =>
+      ipcRenderer.invoke('iac-scan-directory', dirPath, options),
+
+    scanFile: (filePath: string) =>
+      ipcRenderer.invoke('iac-scan-file', filePath),
+
+    getSupportedTypes: () => ipcRenderer.invoke('iac-get-supported-types'),
+
+    getRules: (iacType?: string) =>
+      ipcRenderer.invoke('iac-get-rules', iacType)
+  },
+
+  // ========================================
+  // API SECURITY SCANNER API
+  // OpenAPI/Swagger | OWASP API Top 10 2023
+  // ========================================
+  apiSecurity: {
+    selectSpecFile: () => ipcRenderer.invoke('api-security-select-spec'),
+
+    scanSpec: (specPath: string) =>
+      ipcRenderer.invoke('api-security-scan-spec', specPath),
+
+    scanFromUrl: (url: string) =>
+      ipcRenderer.invoke('api-security-scan-url', url),
+
+    getOWASPCategories: () =>
+      ipcRenderer.invoke('api-security-get-owasp-categories'),
+
+    getRules: () => ipcRenderer.invoke('api-security-get-rules')
+  },
+
+  // ========================================
+  // SIEM CONNECTOR API
+  // Splunk | Elastic | Sentinel | QRadar
+  // ========================================
+  siem: {
+    configure: (platform: string, config: unknown) =>
+      ipcRenderer.invoke('siem-configure', platform, config),
+
+    getConfig: (platform: string) =>
+      ipcRenderer.invoke('siem-get-config', platform),
+
+    testConnection: (platform: string) =>
+      ipcRenderer.invoke('siem-test-connection', platform),
+
+    sendEvent: (platform: string, event: unknown) =>
+      ipcRenderer.invoke('siem-send-event', platform, event),
+
+    sendBatch: (platform: string, events: unknown[]) =>
+      ipcRenderer.invoke('siem-send-batch', platform, events),
+
+    exportFindings: (platform: string, findings: unknown[]) =>
+      ipcRenderer.invoke('siem-export-findings', platform, findings),
+
+    getPlatforms: () => ipcRenderer.invoke('siem-get-platforms')
+  },
+
+  // ========================================
+  // TICKETING INTEGRATION API
+  // Jira | ServiceNow | Azure Boards | GitHub | Linear
+  // ========================================
+  ticketing: {
+    configure: (platform: string, config: unknown) =>
+      ipcRenderer.invoke('ticketing-configure', platform, config),
+
+    getConfig: (platform: string) =>
+      ipcRenderer.invoke('ticketing-get-config', platform),
+
+    testConnection: (platform: string) =>
+      ipcRenderer.invoke('ticketing-test-connection', platform),
+
+    createTicket: (platform: string, finding: unknown) =>
+      ipcRenderer.invoke('ticketing-create-ticket', platform, finding),
+
+    createBulkTickets: (platform: string, findings: unknown[]) =>
+      ipcRenderer.invoke('ticketing-create-bulk', platform, findings),
+
+    updateStatus: (platform: string, ticketId: string, status: string, comment?: string) =>
+      ipcRenderer.invoke('ticketing-update-status', platform, ticketId, status, comment),
+
+    getTicket: (platform: string, ticketId: string) =>
+      ipcRenderer.invoke('ticketing-get-ticket', platform, ticketId),
+
+    syncStatus: (platform: string, ticketId: string) =>
+      ipcRenderer.invoke('ticketing-sync-status', platform, ticketId),
+
+    getPlatforms: () => ipcRenderer.invoke('ticketing-get-platforms')
   }
 });
 
@@ -345,7 +680,27 @@ export interface ElectronAPI {
       findings: Array<{ id: string; title: string; severity: string; tool: string; timestamp: string; description?: string; remediation?: string; file?: string; line?: number }>;
       scanTime: string;
     }>;
-    autoFix: () => Promise<{ success: boolean; fixed: string[]; failed: string[] }>;
+    autoFix: (findings?: Array<{ id: string; title: string; severity: string; tool: string; timestamp: string; description?: string; remediation?: string; file?: string; line?: number }>) => Promise<{
+      success: boolean;
+      fixed: Array<{ id: string; title: string; action: string }>;
+      failed: Array<{ id: string; title: string; reason: string }>;
+      poam: Array<{ id: string; title: string; severity: string; reason: string; milestoneDays: number }>;
+    }>;
+    generatePoam: (findings: Array<{ id: string; title: string; severity: string; tool: string; timestamp: string; description?: string; remediation?: string; file?: string; line?: number }>) => Promise<{
+      poamId: string;
+      generatedAt: string;
+      items: Array<{
+        id: string;
+        weakness: string;
+        severity: string;
+        responsibleParty: string;
+        resources: string;
+        scheduledCompletionDate: string;
+        milestones: Array<{ description: string; dueDate: string }>;
+        status: 'Open' | 'In Progress' | 'Completed';
+      }>;
+      summary: { total: number; critical: number; high: number; medium: number; low: number };
+    }>;
     // Advanced scanning features
     semgrepScan: () => Promise<Array<{ id: string; title: string; severity: string; tool: string; timestamp: string; description?: string; remediation?: string; file?: string; line?: number }>>;
     dockerScan: (imageName: string) => Promise<Array<{ id: string; title: string; severity: string; tool: string; timestamp: string; description?: string; remediation?: string; file?: string; line?: number }>>;
@@ -829,6 +1184,322 @@ export interface ElectronAPI {
       recommendation: string;
     }>>;
     clearCache: () => Promise<{ success: boolean }>;
+  };
+  // SBOM Operations (Supply Chain)
+  sbom: {
+    generate: (projectPath: string) => Promise<unknown>;
+    analyze: (sbom: unknown) => Promise<unknown>;
+    export: (sbom: unknown, format: 'json' | 'xml', outputPath: string) => Promise<{ success: boolean; filePath?: string; error?: string }>;
+    selectProject: () => Promise<string | null>;
+  };
+  // Secret Scanner
+  secretScanner: {
+    scanDirectory: (dirPath: string, options?: unknown) => Promise<Array<{
+      id: string;
+      type: string;
+      file: string;
+      line: number;
+      severity: 'critical' | 'high' | 'medium' | 'low';
+      secret: string;
+      description: string;
+      remediation: string;
+    }>>;
+    scanContent: (content: string, filePath?: string) => Promise<Array<{
+      type: string;
+      line: number;
+      severity: string;
+      match: string;
+    }>>;
+    selectDirectory: () => Promise<string | null>;
+  };
+  // Secure Vault
+  vault: {
+    exists: () => Promise<boolean>;
+    isUnlocked: () => Promise<boolean>;
+    initialize: (masterPassword: string) => Promise<{ success: boolean; error?: string }>;
+    unlock: (masterPassword: string) => Promise<{ success: boolean; error?: string }>;
+    lock: () => Promise<{ success: boolean }>;
+    addSecret: (name: string, value: string, type: string, metadata?: unknown) => Promise<{ success: boolean; id?: string; error?: string }>;
+    getSecret: (id: string) => Promise<{ success: boolean; value?: string; error?: string }>;
+    updateSecret: (id: string, newValue: string) => Promise<{ success: boolean; error?: string }>;
+    deleteSecret: (id: string) => Promise<{ success: boolean; error?: string }>;
+    listEntries: () => Promise<Array<{
+      id: string;
+      name: string;
+      type: string;
+      createdAt: string;
+      updatedAt: string;
+      metadata?: unknown;
+    }>>;
+    getStats: () => Promise<{
+      totalSecrets: number;
+      byType: Record<string, number>;
+      lastAccess?: string;
+    }>;
+    changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
+    getAuditLog: () => Promise<Array<{
+      timestamp: string;
+      action: string;
+      secretName?: string;
+      success: boolean;
+    }>>;
+    export: () => Promise<{ success: boolean; filePath?: string; error?: string }>;
+  };
+  // AI Touchpoint
+  aiTouchpoint: {
+    query: (context: {
+      elementType: string;
+      elementId: string;
+      dataContext: unknown;
+      requestedFrameworks: string[];
+      depth: 'tooltip' | 'panel' | 'deepdive';
+      sessionId: string;
+      timestamp: number;
+    }) => Promise<{
+      overview: string;
+      citations: Array<{ framework: string; controlId: string; title: string; relevance: number }>;
+      attackPath?: string;
+      remediation?: string;
+      riskScore?: number;
+    }>;
+    streamQuery: (context: {
+      elementType: string;
+      elementId: string;
+      dataContext: unknown;
+      requestedFrameworks: string[];
+      depth: 'tooltip' | 'panel' | 'deepdive';
+      sessionId: string;
+      timestamp: number;
+    }) => {
+      onChunk: (callback: (chunk: { type: string; content: string; index: number }) => void) => () => void;
+      onComplete: (callback: (response: unknown) => void) => () => void;
+      onError: (callback: (error: Error) => void) => () => void;
+      cancel: () => void;
+      isPaused: boolean;
+      pause: () => void;
+      resume: () => void;
+    };
+    analyzeMetric: (metricName: string, value: number, trend: 'up' | 'down' | 'stable', context?: unknown) => Promise<{
+      analysis: string;
+      recommendation: string;
+      citations: Array<{ framework: string; controlId: string }>;
+    }>;
+    generateAttackPath: (vulnerability: { id: string; title: string; severity: string; description: string }) => Promise<{
+      mermaidDiagram: string;
+      steps: Array<{ step: number; description: string; technique?: string }>;
+    }>;
+  };
+  // Analytics
+  analytics: {
+    track: (event: {
+      type: string;
+      elementType: string;
+      elementId?: string;
+      durationMs?: number;
+      context?: Record<string, unknown>;
+    }) => Promise<{ success: boolean }>;
+    rate: (queryId: string, rating: number) => Promise<{ success: boolean }>;
+    getProfile: () => Promise<{
+      expertiseLevel: string;
+      preferredFrameworks: string[];
+      commonQueries: string[];
+    }>;
+    getInsights: (timeframe?: { start: number; end: number }) => Promise<{
+      totalInteractions: number;
+      averageSessionLength: number;
+      topElements: Array<{ elementType: string; count: number }>;
+    }>;
+    getPatterns: (severity?: string) => Promise<Array<{
+      patternType: string;
+      severity: string;
+      description: string;
+      recommendedActions: string[];
+    }>>;
+    getLearningInsights: () => Promise<{
+      topRatedResponses: Array<{ queryId: string; rating: number; prompt: string }>;
+      improvementAreas: string[];
+    }>;
+    getStats: () => Promise<{
+      totalQueries: number;
+      averageRating: number;
+      responseTimeMs: number;
+    }>;
+    cleanup: (daysToKeep?: number) => Promise<{ success: boolean; deletedCount: number }>;
+  };
+  // Space Compliance
+  spaceCompliance: {
+    registerProject: (config: {
+      name: string;
+      type: 'spacecraft' | 'avionics' | 'ground-system' | 'mission-control' | 'general';
+      primaryFramework: 'NASA-STD-8719' | 'DO-178C' | 'Common-Criteria';
+      targetLevel: string;
+      description?: string;
+    }) => Promise<{ success: boolean; projectId?: string; error?: string }>;
+    getProject: (projectId: string) => Promise<unknown>;
+    listProjects: () => Promise<Array<{ id: string; name: string; type: string; framework: string }>>;
+    assessNASA: (params: unknown) => Promise<{
+      category: string;
+      score: number;
+      findings: Array<{ control: string; status: string; description: string }>;
+      recommendations: string[];
+    }>;
+    assessDO178C: (params: unknown) => Promise<{
+      dalLevel: string;
+      coverageScore: number;
+      objectives: Array<{ id: string; status: string; description: string }>;
+      gaps: string[];
+    }>;
+    assessCommonCriteria: (params: unknown) => Promise<{
+      ealLevel: string;
+      assuranceScore: number;
+      components: Array<{ id: string; status: string; description: string }>;
+      recommendations: string[];
+    }>;
+    getAssessment: (assessmentId: string) => Promise<unknown>;
+    listAssessments: () => Promise<Array<{ id: string; framework: string; score: number; date: string }>>;
+    getFrameworkInfo: (framework: 'NASA-STD-8719' | 'DO-178C' | 'Common-Criteria') => Promise<{
+      name: string;
+      version: string;
+      description: string;
+      levels: Array<{ id: string; name: string; description: string }>;
+    }>;
+    getMappings: (framework: string, controlId: string) => Promise<Array<{
+      targetFramework: string;
+      targetControlId: string;
+      mappingType: 'equivalent' | 'partial' | 'related';
+    }>>;
+    generateUnifiedReport: (assessmentIds: string[]) => Promise<{
+      success: boolean;
+      report?: unknown;
+      error?: string;
+    }>;
+  };
+  // Notification Service
+  notifications: {
+    send: (payload: {
+      title: string;
+      message: string;
+      severity: string;
+      channels: string[];
+      metadata?: unknown;
+    }) => Promise<{ success: boolean; results?: unknown; error?: string }>;
+    configureChannel: (channel: string, config: unknown) => Promise<{ success: boolean; error?: string }>;
+    getChannelConfig: (channel: string) => Promise<unknown>;
+    testChannel: (channel: string) => Promise<{ success: boolean; error?: string }>;
+    addRule: (rule: {
+      name: string;
+      conditions: { severity?: string[]; type?: string[]; framework?: string[] };
+      channels: string[];
+      throttleMinutes?: number;
+      enabled?: boolean;
+    }) => Promise<{ success: boolean; ruleId?: string; error?: string }>;
+    removeRule: (ruleId: string) => Promise<{ success: boolean; error?: string }>;
+    getRules: () => Promise<Array<unknown>>;
+    processFinding: (finding: unknown) => Promise<{ success: boolean; error?: string }>;
+  };
+  // IaC Scanner
+  iac: {
+    selectDirectory: () => Promise<string | null>;
+    scanDirectory: (dirPath: string, options?: { recursive?: boolean }) => Promise<{
+      success: boolean;
+      results?: {
+        scanId: string;
+        timestamp: string;
+        duration: number;
+        iacType: string;
+        filesScanned: number;
+        findings: Array<{
+          id: string;
+          ruleId: string;
+          title: string;
+          description: string;
+          severity: string;
+          category: string;
+          resource?: string;
+          file: string;
+          line: number;
+          remediation: string;
+        }>;
+        summary: { critical: number; high: number; medium: number; low: number; info: number; total: number };
+        passedChecks: number;
+        failedChecks: number;
+      };
+      error?: string;
+    }>;
+    scanFile: (filePath: string) => Promise<{ success: boolean; results?: unknown; error?: string }>;
+    getSupportedTypes: () => Promise<string[]>;
+    getRules: (iacType?: string) => Promise<Array<unknown>>;
+  };
+  // API Security Scanner
+  apiSecurity: {
+    selectSpecFile: () => Promise<string | null>;
+    scanSpec: (specPath: string) => Promise<{
+      success: boolean;
+      results?: {
+        scanId: string;
+        timestamp: string;
+        duration: number;
+        specFile: string;
+        apiTitle: string;
+        apiVersion: string;
+        baseUrl?: string;
+        endpointsAnalyzed: number;
+        endpoints: Array<{
+          path: string;
+          method: string;
+          summary?: string;
+          security?: string[];
+        }>;
+        findings: Array<{
+          id: string;
+          ruleId: string;
+          title: string;
+          description: string;
+          severity: string;
+          owaspCategory: string;
+          endpoint?: string;
+          method?: string;
+          remediation: string;
+        }>;
+        summary: { critical: number; high: number; medium: number; low: number; info: number; total: number };
+        securityScore: number;
+        owaspCoverage: Record<string, { findings: number; status: string }>;
+      };
+      error?: string;
+    }>;
+    scanFromUrl: (url: string) => Promise<{ success: boolean; results?: unknown; error?: string }>;
+    getOWASPCategories: () => Promise<Record<string, { name: string; description: string }>>;
+    getRules: () => Promise<Array<unknown>>;
+  };
+  // SIEM Connector
+  siem: {
+    configure: (platform: string, config: unknown) => Promise<{ success: boolean; error?: string }>;
+    getConfig: (platform: string) => Promise<unknown>;
+    testConnection: (platform: string) => Promise<{ success: boolean; error?: string }>;
+    sendEvent: (platform: string, event: unknown) => Promise<{ success: boolean; error?: string }>;
+    sendBatch: (platform: string, events: unknown[]) => Promise<{ success: boolean; error?: string }>;
+    exportFindings: (platform: string, findings: unknown[]) => Promise<{ success: boolean; error?: string }>;
+    getPlatforms: () => Promise<string[]>;
+  };
+  // Ticketing Integration
+  ticketing: {
+    configure: (platform: string, config: unknown) => Promise<{ success: boolean; error?: string }>;
+    getConfig: (platform: string) => Promise<unknown>;
+    testConnection: (platform: string) => Promise<{ success: boolean; error?: string }>;
+    createTicket: (platform: string, finding: unknown) => Promise<{
+      success: boolean;
+      ticket?: { ticketId: string; ticketUrl: string; status: string };
+      error?: string;
+    }>;
+    createBulkTickets: (platform: string, findings: unknown[]) => Promise<{
+      success: boolean;
+      tickets?: Array<{ ticketId: string; ticketUrl: string }>;
+      error?: string;
+    }>;
+    updateStatus: (platform: string, ticketId: string, status: string, comment?: string) => Promise<{ success: boolean; error?: string }>;
+    getTicket: (platform: string, ticketId: string) => Promise<{ success: boolean; ticket?: unknown; error?: string }>;
+    syncStatus: (platform: string, ticketId: string) => Promise<{ success: boolean; status?: string; error?: string }>;
+    getPlatforms: () => Promise<string[]>;
   };
 }
 

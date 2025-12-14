@@ -69,7 +69,12 @@ interface DashboardState {
 
   // Auto-fix state
   isFixing: boolean;
-  lastFixResult: { success: boolean; fixed: string[]; failed: string[] } | null;
+  lastFixResult: {
+    success: boolean;
+    fixed: Array<{ id: string; title: string; action: string }>;
+    failed: Array<{ id: string; title: string; reason: string }>;
+    poam: Array<{ id: string; title: string; severity: string; reason: string; milestoneDays: number }>;
+  } | null;
 
   // Actions
   setRiskScore: (score: RiskScore) => void;
@@ -79,8 +84,14 @@ interface DashboardState {
   setSbomStats: (stats: SbomStats) => void;
   setRecentFindings: (findings: DashboardState['recentFindings']) => void;
   refreshDashboard: () => Promise<void>;
-  runAutoFix: () => Promise<{ success: boolean; fixed: string[]; failed: string[] }>;
+  runAutoFix: () => Promise<{
+    success: boolean;
+    fixed: Array<{ id: string; title: string; action: string }>;
+    failed: Array<{ id: string; title: string; reason: string }>;
+    poam: Array<{ id: string; title: string; severity: string; reason: string; milestoneDays: number }>;
+  }>;
   fixFinding: (finding: DashboardState['recentFindings'][0]) => Promise<void>;
+  generatePoam: () => Promise<void>;
 }
 
 export const useDashboardStore = create<DashboardState>((set, get) => ({
@@ -222,36 +233,61 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     // AI-POWERED AUTO-REMEDIATION
     set({ isFixing: true, lastFixResult: null });
 
+    const emptyResult = {
+      success: false,
+      fixed: [] as Array<{ id: string; title: string; action: string }>,
+      failed: [] as Array<{ id: string; title: string; reason: string }>,
+      poam: [] as Array<{ id: string; title: string; severity: string; reason: string; milestoneDays: number }>
+    };
+
     try {
       if (window.electronAPI?.security?.autoFix) {
-        console.log('[J.O.E. Dashboard] Starting AI auto-fix...');
-        const result = await window.electronAPI.security.autoFix();
-        console.log('[J.O.E. Dashboard] Auto-fix complete:', result);
+        // Pass current findings to the auto-fix
+        const currentFindings = get().recentFindings;
+        console.log('[J.O.E. Dashboard] Starting AI auto-fix with', currentFindings.length, 'findings...');
+
+        const result = await window.electronAPI.security.autoFix(currentFindings);
+        console.log('[J.O.E. Dashboard] Auto-fix complete:', {
+          fixed: result.fixed.length,
+          failed: result.failed.length,
+          poam: result.poam.length
+        });
 
         set({
           isFixing: false,
           lastFixResult: result
         });
 
-        // Re-scan after fixes
-        if (result.success && result.fixed.length > 0) {
-          console.log('[J.O.E. Dashboard] Re-scanning after fixes...');
+        // Re-scan after fixes to verify remediation
+        if (result.fixed.length > 0) {
+          console.log('[J.O.E. Dashboard] Re-scanning to verify fixes...');
           await get().refreshDashboard();
+        }
+
+        // Log POAM items for tracking
+        if (result.poam.length > 0) {
+          console.log('[J.O.E. Dashboard] POAM items generated:', result.poam.map(p => p.title));
         }
 
         return result;
       } else {
         console.warn('[J.O.E. Dashboard] Not in Electron - auto-fix unavailable');
-        const fallbackResult = { success: false, fixed: [], failed: ['Auto-fix requires Electron environment'] };
+        const fallbackResult = {
+          ...emptyResult,
+          failed: [{ id: 'env-error', title: 'Environment Error', reason: 'Auto-fix requires Electron environment' }]
+        };
         set({ isFixing: false, lastFixResult: fallbackResult });
         return fallbackResult;
       }
     } catch (error) {
       console.error('[J.O.E. Dashboard] Auto-fix failed:', error);
       const errorResult = {
-        success: false,
-        fixed: [],
-        failed: [error instanceof Error ? error.message : 'Unknown error']
+        ...emptyResult,
+        failed: [{
+          id: 'error',
+          title: 'Auto-fix Error',
+          reason: error instanceof Error ? error.message : 'Unknown error'
+        }]
       };
       set({ isFixing: false, lastFixResult: errorResult });
       return errorResult;
@@ -263,27 +299,61 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     console.log('[J.O.E. Dashboard] Fixing finding:', finding.id, finding.title);
 
     try {
-      // For npm vulnerabilities, run auto-fix
-      if (finding.tool === 'npm audit') {
-        const result = await get().runAutoFix();
-        if (result.success) {
-          // Remove the finding from the list
+      if (window.electronAPI?.security?.autoFix) {
+        // Pass just this finding to auto-fix
+        const result = await window.electronAPI.security.autoFix([finding]);
+
+        if (result.fixed.length > 0) {
+          // Remove the fixed finding from the list
           const currentFindings = get().recentFindings;
           set({
-            recentFindings: currentFindings.filter(f => f.id !== finding.id)
+            recentFindings: currentFindings.filter(f => f.id !== finding.id),
+            lastFixResult: result
           });
+        } else {
+          set({ lastFixResult: result });
         }
+
+        // Re-scan to verify
+        await get().refreshDashboard();
         return;
       }
 
       // For other findings, show remediation and re-scan
       console.log('[J.O.E. Dashboard] Remediation:', finding.remediation);
-
-      // Re-scan after potential manual fix
       await get().refreshDashboard();
 
     } catch (error) {
       console.error('[J.O.E. Dashboard] Fix finding failed:', error);
+    }
+  },
+
+  generatePoam: async () => {
+    // Generate POAM for all current findings
+    const findings = get().recentFindings;
+    if (findings.length === 0) {
+      console.log('[J.O.E. Dashboard] No findings to generate POAM');
+      return;
+    }
+
+    try {
+      if (window.electronAPI?.security?.generatePoam) {
+        console.log('[J.O.E. Dashboard] Generating POAM for', findings.length, 'findings...');
+        const poam = await window.electronAPI.security.generatePoam(findings);
+        console.log('[J.O.E. Dashboard] POAM generated:', poam.poamId);
+
+        // Could save to file or display in modal
+        if (window.electronAPI?.export?.saveFile) {
+          await window.electronAPI.export.saveFile({
+            title: 'Save POAM',
+            defaultPath: `${poam.poamId}.json`,
+            filters: [{ name: 'JSON', extensions: ['json'] }],
+            content: JSON.stringify(poam, null, 2)
+          });
+        }
+      }
+    } catch (error) {
+      console.error('[J.O.E. Dashboard] POAM generation failed:', error);
     }
   }
 }));

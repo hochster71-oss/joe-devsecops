@@ -335,7 +335,7 @@ export const useKubernetesStore = create<KubernetesState>((set, get) => ({
         throw new Error('Kubernetes audit API not available');
       }
 
-      const results = await window.electronAPI.kubernetes.runAudit(namespace);
+      const results = await window.electronAPI.kubernetes.runAudit(namespace) as K8sScanResults;
 
       clearInterval(progressInterval);
 
@@ -344,7 +344,7 @@ export const useKubernetesStore = create<KubernetesState>((set, get) => ({
 
       // Calculate image vulnerability totals
       const imageVulnCount = results.containerImages.reduce(
-        (acc, img) => ({
+        (acc: { critical: number; high: number; medium: number; low: number }, img: ImageVulnerability) => ({
           critical: acc.critical + img.vulnerabilities.critical,
           high: acc.high + img.vulnerabilities.high,
           medium: acc.medium + img.vulnerabilities.medium,
@@ -389,7 +389,7 @@ export const useKubernetesStore = create<KubernetesState>((set, get) => ({
     set({ isScanning: true });
     try {
       if (window.electronAPI?.kubernetes?.getPods) {
-        const podSecurity = await window.electronAPI.kubernetes.getPods(namespace);
+        const podSecurity = await window.electronAPI.kubernetes.getPods(namespace) as PodSecurityResult;
         set(state => ({
           isScanning: false,
           scanResults: state.scanResults ? {
@@ -415,10 +415,10 @@ export const useKubernetesStore = create<KubernetesState>((set, get) => ({
     set({ isScanning: true });
     try {
       if (window.electronAPI?.kubernetes?.scanImages) {
-        const containerImages = await window.electronAPI.kubernetes.scanImages(namespace);
+        const containerImages = await window.electronAPI.kubernetes.scanImages(namespace) as ImageVulnerability[];
 
         const imageVulnCount = containerImages.reduce(
-          (acc: any, img: ImageVulnerability) => ({
+          (acc: { critical: number; high: number; medium: number; low: number }, img: ImageVulnerability) => ({
             critical: acc.critical + img.vulnerabilities.critical,
             high: acc.high + img.vulnerabilities.high,
             medium: acc.medium + img.vulnerabilities.medium,
@@ -448,7 +448,7 @@ export const useKubernetesStore = create<KubernetesState>((set, get) => ({
     set({ isScanning: true });
     try {
       if (window.electronAPI?.kubernetes?.analyzeRBAC) {
-        const rbacAnalysis = await window.electronAPI.kubernetes.analyzeRBAC();
+        const rbacAnalysis = await window.electronAPI.kubernetes.analyzeRBAC() as RBACAnalysisResult;
         set(state => ({
           isScanning: false,
           scanResults: state.scanResults ? {
@@ -559,23 +559,6 @@ function calculateRBACRiskScore(rbac: RBACAnalysisResult): number {
   return Math.max(0, Math.min(100, score));
 }
 
-// Type augmentation for window.electronAPI
-declare global {
-  interface Window {
-    electronAPI?: {
-      kubernetes?: {
-        getContexts: () => Promise<string[]>;
-        connect: (config: K8sClusterConfig) => Promise<{ success: boolean; cluster?: ClusterInfo; error?: string }>;
-        disconnect: () => Promise<void>;
-        runAudit: (namespace?: string) => Promise<K8sScanResults>;
-        getPods: (namespace?: string) => Promise<PodSecurityResult>;
-        scanImages: (namespace?: string) => Promise<ImageVulnerability[]>;
-        analyzeRBAC: () => Promise<RBACAnalysisResult>;
-        checkPolicies: () => Promise<NetworkPolicyResult>;
-      };
-      // ... other APIs
-    } & Record<string, unknown>;
-  }
-}
+// Types are declared globally in src/types/electron.d.ts
 
 export default useKubernetesStore;

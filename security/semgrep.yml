@@ -1,0 +1,78 @@
+# J.O.E. DevSecOps Arsenal - Semgrep Configuration
+# Custom rules for security scanning
+
+rules:
+  # Detect plaintext secrets in localStorage
+  - id: joe-plaintext-localstorage
+    pattern: localStorage.setItem($KEY, JSON.stringify({..., pin: $PIN, ...}))
+    message: "PIN stored in plaintext in localStorage. Use hashing."
+    severity: WARNING
+    languages: [typescript, javascript]
+    metadata:
+      category: security
+      technology: [react]
+      references:
+        - https://owasp.org/www-community/vulnerabilities/Insecure_Data_Storage
+
+  # Detect base64 "encryption" (not real encryption)
+  - id: joe-base64-password
+    patterns:
+      - pattern: btoa($PASSWORD)
+      - pattern: atob($HASH)
+    message: "Base64 is not encryption. Use proper hashing (bcrypt, argon2)."
+    severity: WARNING
+    languages: [typescript, javascript]
+    metadata:
+      category: security
+      cwe: "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
+
+  # Detect hardcoded credentials
+  - id: joe-hardcoded-creds
+    patterns:
+      - pattern: |
+          { hash: btoa('...'), ... }
+      - pattern: |
+          password: '...'
+    message: "Hardcoded credentials detected."
+    severity: ERROR
+    languages: [typescript, javascript]
+    metadata:
+      category: security
+      cwe: "CWE-798: Use of Hard-coded Credentials"
+
+  # Detect console.log in production code
+  - id: joe-console-log
+    pattern: console.log(...)
+    message: "Console.log should be removed in production code."
+    severity: INFO
+    languages: [typescript, javascript]
+    paths:
+      include:
+        - src/
+      exclude:
+        - test/
+        - "*.test.*"
+    metadata:
+      category: best-practice
+
+  # Detect eval usage
+  - id: joe-eval-usage
+    pattern: eval(...)
+    message: "eval() is dangerous and should not be used."
+    severity: ERROR
+    languages: [typescript, javascript]
+    metadata:
+      category: security
+      cwe: "CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code"
+
+  # Detect innerHTML usage (XSS risk)
+  - id: joe-innerhtml
+    patterns:
+      - pattern: $EL.innerHTML = $INPUT
+      - pattern: dangerouslySetInnerHTML={{...}}
+    message: "innerHTML/dangerouslySetInnerHTML can lead to XSS. Sanitize input."
+    severity: WARNING
+    languages: [typescript, javascript, tsx, jsx]
+    metadata:
+      category: security
+      cwe: "CWE-79: Improper Neutralization of Input During Web Page Generation"

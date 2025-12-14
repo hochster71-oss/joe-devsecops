@@ -11,15 +11,15 @@ const config: ForgeConfig = {
     name: 'J.O.E. DevSecOps Arsenal',
     executableName: 'joe-devsecops',
     appBundleId: 'com.darkwolfsolutions.joe-devsecops',
-    appCategoryType: 'public.app-category.developer-tools'
-    // icon: './resources/icons/joe-icon' // Requires .ico/.icns file
+    appCategoryType: 'public.app-category.developer-tools',
+    icon: './resources/icons/joe-icon'
   },
   makers: [
     // Windows
     new MakerZIP({}, ['win32']),
     new MakerSquirrel({
-      name: 'JOEDevSecOps'
-      // setupIcon: './resources/icons/joe-icon.ico'
+      name: 'JOEDevSecOps',
+      setupIcon: './resources/icons/joe-icon.ico'
     }),
     // macOS
     new MakerZIP({}, ['darwin']),
@@ -38,8 +38,8 @@ const config: ForgeConfig = {
         description: 'AI-driven DevSecOps security scanner with CMMC compliance',
         maintainer: 'Dark Wolf Solutions',
         homepage: 'https://github.com/darkwolfsolutions/joe-devsecops',
-        categories: ['Development', 'Security', 'Utility']
-        // icon: './resources/icons/joe-icon.png'
+        categories: ['Development', 'Security', 'Utility'],
+        icon: './resources/icons/joe-icon.png'
       }
     }),
     new MakerRpm({
@@ -49,8 +49,8 @@ const config: ForgeConfig = {
         genericName: 'DevSecOps Security Tool',
         description: 'AI-driven DevSecOps security scanner with CMMC compliance',
         homepage: 'https://github.com/darkwolfsolutions/joe-devsecops',
-        categories: ['Development', 'Security', 'Utility']
-        // icon: './resources/icons/joe-icon.png'
+        categories: ['Development', 'Security', 'Utility'],
+        icon: './resources/icons/joe-icon.png'
       }
     })
   ],

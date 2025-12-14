@@ -503,6 +503,225 @@ Include:
       context
     );
   }
+
+  // =============================================================================
+  // AI TOUCHPOINT SYSTEM
+  // Space-Grade Security Intelligence with Framework Citations
+  // NASA-STD-8719 | DO-178C | NIST CSF 2.0 | MITRE ATT&CK
+  // =============================================================================
+
+  /**
+   * Generate AI touchpoint response with framework citations
+   * Used by AITouchpointProvider for hover/click interactions
+   */
+  async generateTouchpointResponse(
+    elementType: string,
+    data: Record<string, unknown>,
+    frameworks: string[],
+    depth: 'tooltip' | 'panel' | 'deepdive'
+  ): Promise<{
+    summary: string;
+    detailedAnalysis: string;
+    citations: Array<{ framework: string; controlId: string; title: string; relevance: string }>;
+    remediationSteps: Array<{ order: number; title: string; description: string; difficulty: string; estimatedTime: string }>;
+    confidence: number;
+  }> {
+    const depthPrompts = {
+      tooltip: 'Provide a concise 2-3 sentence security analysis with 2-3 key framework citations.',
+      panel: 'Provide detailed analysis (200-300 words) with 5+ framework citations and key remediation points.',
+      deepdive: 'Provide comprehensive analysis including attack paths, full remediation steps with code examples, and all relevant framework mappings.'
+    };
+
+    const touchpointPrompt = `You are J.O.E. (Joint-Ops-Engine), a Space-Grade Security Intelligence AI.
+
+ANALYSIS CONTEXT:
+- Element Type: ${elementType}
+- Data: ${JSON.stringify(data, null, 2)}
+- Required Frameworks: ${frameworks.join(', ')}
+- Analysis Depth: ${depth}
+
+INSTRUCTIONS: ${depthPrompts[depth]}
+
+CITATION FORMAT REQUIREMENTS:
+For each finding, cite specific framework controls using EXACT IDs:
+- NIST 800-53: "AC-2", "SA-11", "SC-7"
+- MITRE ATT&CK: "T1190", "T1059.001", "T1078"
+- CIS Controls v8: "5.1", "16.3", "7.2"
+- OWASP Top 10: "A01:2021", "A03:2021"
+- NASA-STD-8719: "CAT-I", "CAT-II", "CAT-III"
+- DO-178C: "DAL-A", "DAL-B", "DAL-C"
+- CMMC 2.0: "AC.L1-3.1.1", "IA.L2-3.5.3"
+
+RESPONSE FORMAT (JSON):
+{
+  "summary": "Brief overview",
+  "detailedAnalysis": "Full analysis with markdown formatting",
+  "citations": [
+    {"framework": "NIST-800-53", "controlId": "AC-2", "title": "Account Management", "relevance": "direct"}
+  ],
+  "remediationSteps": [
+    {"order": 1, "title": "Step title", "description": "Detailed step", "difficulty": "easy|moderate|complex", "estimatedTime": "5 minutes"}
+  ],
+  "attackPath": "Optional Mermaid diagram syntax for deepdive",
+  "confidence": 85
+}
+
+Respond ONLY with valid JSON.`;
+
+    try {
+      const response = await this.chat(touchpointPrompt);
+
+      // Parse JSON response
+      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        return {
+          summary: parsed.summary ?? response.slice(0, 200),
+          detailedAnalysis: parsed.detailedAnalysis ?? response,
+          citations: parsed.citations ?? [],
+          remediationSteps: parsed.remediationSteps ?? [],
+          confidence: parsed.confidence ?? 75
+        };
+      }
+
+      // Fallback: extract citations from text
+      return this.parseUnstructuredResponse(response, frameworks);
+    } catch (error) {
+      console.error('Touchpoint response error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Stream touchpoint response for real-time UI updates
+   */
+  async *streamTouchpointResponse(
+    elementType: string,
+    data: Record<string, unknown>,
+    frameworks: string[],
+    depth: 'tooltip' | 'panel' | 'deepdive'
+  ): AsyncGenerator<{ type: string; content: string }, void, unknown> {
+    const prompt = `Analyze this ${elementType} for security implications.
+Data: ${JSON.stringify(data)}
+Frameworks: ${frameworks.join(', ')}
+Provide: summary, analysis, ${frameworks.join('/')} citations, remediation steps.
+Use markdown formatting.`;
+
+    yield { type: 'start', content: '' };
+
+    let fullResponse = '';
+    for await (const chunk of this.streamChat(prompt)) {
+      fullResponse += chunk;
+      yield { type: 'chunk', content: chunk };
+    }
+
+    yield { type: 'complete', content: fullResponse };
+  }
+
+  /**
+   * Parse unstructured AI response into citation format
+   */
+  private parseUnstructuredResponse(
+    response: string,
+    frameworks: string[]
+  ): {
+    summary: string;
+    detailedAnalysis: string;
+    citations: Array<{ framework: string; controlId: string; title: string; relevance: string }>;
+    remediationSteps: Array<{ order: number; title: string; description: string; difficulty: string; estimatedTime: string }>;
+    confidence: number;
+  } {
+    // Extract citations using regex patterns
+    const citationPatterns = [
+      { regex: /NIST\s*800-53\s*([A-Z]{2}-\d+(?:\.\d+)?)/gi, framework: 'NIST-800-53' },
+      { regex: /(?:MITRE\s*ATT&CK\s*)?T(\d{4}(?:\.\d{3})?)/gi, framework: 'MITRE-ATTACK', prefix: 'T' },
+      { regex: /CIS\s*(?:Control\s*)?(\d+\.\d+)/gi, framework: 'CIS-CONTROLS' },
+      { regex: /OWASP\s*(A\d{2}:\d{4})/gi, framework: 'OWASP-TOP-10' },
+      { regex: /NASA[- ]STD[- ]8719\s*(CAT-[IV]+)/gi, framework: 'NASA-STD-8719' },
+      { regex: /DO-178C\s*(DAL-[A-E])/gi, framework: 'DO-178C' },
+      { regex: /CMMC\s*(\w+\.\w+-[\d.]+)/gi, framework: 'CMMC-2.0' }
+    ];
+
+    const citations: Array<{ framework: string; controlId: string; title: string; relevance: string }> = [];
+
+    for (const { regex, framework, prefix } of citationPatterns) {
+      let match;
+      while ((match = regex.exec(response)) !== null) {
+        const controlId = prefix ? `${prefix}${match[1]}` : match[1];
+        if (!citations.find(c => c.controlId === controlId)) {
+          citations.push({
+            framework,
+            controlId,
+            title: `${framework} ${controlId}`,
+            relevance: 'direct'
+          });
+        }
+      }
+    }
+
+    // Extract summary (first paragraph or sentence)
+    const summaryMatch = response.match(/^[^.!?]*[.!?]/);
+    const summary = summaryMatch ? summaryMatch[0].trim() : response.slice(0, 200);
+
+    return {
+      summary,
+      detailedAnalysis: response,
+      citations: citations.slice(0, 10),
+      remediationSteps: [],
+      confidence: citations.length > 3 ? 80 : 60
+    };
+  }
+
+  /**
+   * Analyze security metric for dashboard touchpoints
+   */
+  async analyzeMetric(
+    metricName: string,
+    value: number,
+    trend: 'up' | 'down' | 'stable',
+    context?: Record<string, unknown>
+  ): Promise<string> {
+    const prompt = `Analyze this security metric for a DevSecOps dashboard:
+
+Metric: ${metricName}
+Value: ${value}
+Trend: ${trend}
+${context ? `Context: ${JSON.stringify(context)}` : ''}
+
+Provide:
+1. What this metric indicates about security posture
+2. Whether the current value/trend is concerning
+3. Relevant NIST 800-53 or CIS Controls citations
+4. Recommended actions if the metric is suboptimal
+
+Keep response under 150 words for tooltip display.`;
+
+    return this.chat(prompt);
+  }
+
+  /**
+   * Generate attack path diagram for vulnerabilities
+   */
+  async generateAttackPath(
+    vulnerability: { id: string; title: string; severity: string; description: string }
+  ): Promise<string> {
+    const prompt = `Generate a MITRE ATT&CK attack path for this vulnerability:
+
+${vulnerability.id}: ${vulnerability.title}
+Severity: ${vulnerability.severity}
+Description: ${vulnerability.description}
+
+Provide a Mermaid flowchart diagram showing:
+1. Initial Access technique
+2. Execution method
+3. Potential privilege escalation
+4. Lateral movement possibilities
+5. Impact/objective
+
+Format as Mermaid flowchart syntax starting with "flowchart TD"`;
+
+    return this.chat(prompt);
+  }
 }
 
 // Export singleton instance

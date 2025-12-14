@@ -9,6 +9,7 @@ import KubernetesView from './views/KubernetesView';
 import GitLabView from './views/GitLabView';
 import SupplyChainView from './views/SupplyChainView';
 import ComplianceView from './views/ComplianceView';
+import SpaceComplianceView from './views/SpaceComplianceView';
 import PipelineView from './views/PipelineView';
 import AiAssistantView from './views/AiAssistantView';
 import ReportsView from './views/ReportsView';
@@ -16,7 +17,14 @@ import SettingsView from './views/SettingsView';
 import AdminView from './views/AdminView';
 import MissionControlView from './views/MissionControlView';
 import AttackSurfaceView from './views/AttackSurfaceView';
+import AnalyticsView from './views/AnalyticsView';
+import IaCSecurityView from './views/IaCSecurityView';
+import APISecurityView from './views/APISecurityView';
+import IntegrationsView from './views/IntegrationsView';
 import PasswordChangeModal from './components/PasswordChangeModal';
+
+// AI Touchpoint System - Space-Grade Security Intelligence
+import { AITouchpointProvider } from './components/ai-touchpoint';
 
 // Protected Route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -58,9 +66,10 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return (
-    <Routes>
-      {/* Public Routes */}
-      <Route path="/login" element={<LoginView />} />
+    <AITouchpointProvider>
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/login" element={<LoginView />} />
 
       {/* Protected Routes */}
       <Route
@@ -75,14 +84,19 @@ export default function App() {
         <Route path="dashboard" element={<DashboardView />} />
         <Route path="findings" element={<FindingsView />} />
         <Route path="threat-intel" element={<ThreatIntelView />} />
+        <Route path="iac-security" element={<IaCSecurityView />} />
+        <Route path="api-security" element={<APISecurityView />} />
         <Route path="kubernetes" element={<KubernetesView />} />
         <Route path="gitlab" element={<GitLabView />} />
         <Route path="supply-chain" element={<SupplyChainView />} />
         <Route path="compliance" element={<ComplianceView />} />
+        <Route path="space-compliance" element={<SpaceComplianceView />} />
         <Route path="pipeline" element={<PipelineView />} />
         <Route path="ai-assistant" element={<AiAssistantView />} />
         <Route path="mission-control" element={<MissionControlView />} />
         <Route path="attack-surface" element={<AttackSurfaceView />} />
+        <Route path="integrations" element={<IntegrationsView />} />
+        <Route path="analytics" element={<AnalyticsView />} />
         <Route path="reports" element={<ReportsView />} />
         <Route path="settings" element={<SettingsView />} />
 
@@ -97,8 +111,9 @@ export default function App() {
         />
       </Route>
 
-      {/* Catch all */}
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
-    </Routes>
+        {/* Catch all */}
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+    </AITouchpointProvider>
   );
 }

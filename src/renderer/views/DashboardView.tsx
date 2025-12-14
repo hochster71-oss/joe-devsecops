@@ -260,7 +260,7 @@ export default function DashboardView() {
 
   useEffect(() => {
     const checkAPI = () => {
-      if (window.electronAPI?.security?.runAudit) {
+      if (typeof window.electronAPI?.security?.runAudit === 'function') {
         setApiStatus('J.O.E. ONLINE');
       } else if (window.electronAPI) {
         setApiStatus('LIMITED MODE');
@@ -873,7 +873,7 @@ export default function DashboardView() {
                   <ul className="space-y-1">
                     {lastFixResult.fixed.map((item, i) => (
                       <li key={i} className="text-gray-400 flex items-center gap-2">
-                        <span className="text-dws-green">✓</span> {item}
+                        <span className="text-dws-green">✓</span> {item.title} - {item.action}
                       </li>
                     ))}
                   </ul>
@@ -886,7 +886,30 @@ export default function DashboardView() {
                   <ul className="space-y-1">
                     {lastFixResult.failed.map((item, i) => (
                       <li key={i} className="text-gray-400 flex items-center gap-2">
-                        <span className="text-alert-warning">✗</span> {item}
+                        <span className="text-alert-warning">✗</span> {item.title} - {item.reason}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {lastFixResult.poam && lastFixResult.poam.length > 0 && (
+                <div>
+                  <h4 className="font-semibold text-blue-400 mb-2 text-lg">POAM Items (Requires Manual Remediation):</h4>
+                  <ul className="space-y-2">
+                    {lastFixResult.poam.map((item, i) => (
+                      <li key={i} className="text-gray-400 p-2 bg-blue-900/20 rounded border border-blue-500/30">
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                            item.severity === 'critical' ? 'bg-red-500/20 text-red-400' :
+                            item.severity === 'high' ? 'bg-orange-500/20 text-orange-400' :
+                            item.severity === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
+                            'bg-blue-500/20 text-blue-400'
+                          }`}>{item.severity.toUpperCase()}</span>
+                          <span className="font-medium text-white">{item.title}</span>
+                        </div>
+                        <p className="text-sm mt-1 text-gray-500">Reason: {item.reason}</p>
+                        <p className="text-sm text-blue-400">Milestone: {item.milestoneDays} days</p>
                       </li>
                     ))}
                   </ul>

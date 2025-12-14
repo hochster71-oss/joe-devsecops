@@ -316,7 +316,7 @@ export const useGitLabStore = create<GitLabState>((set, get) => ({
         throw new Error('GitLab scan API not available');
       }
 
-      const results = await window.electronAPI.gitlab.scanProject(project.id);
+      const results = await window.electronAPI.gitlab.scanProject(project.id) as GitLabScanResults;
 
       clearInterval(progressInterval);
 
@@ -324,7 +324,7 @@ export const useGitLabStore = create<GitLabState>((set, get) => ({
       const criticalFindings = extractCriticalFindings(results);
       const sastScore = calculateSASTScore(results.sastFindings);
       const dependencyVulnCount = results.dependencyVulnerabilities.reduce(
-        (acc, v) => {
+        (acc: { critical: number; high: number; medium: number; low: number }, v: { severity: string }) => {
           const sev = v.severity.toLowerCase();
           if (sev === 'critical') acc.critical++;
           else if (sev === 'high') acc.high++;
@@ -450,20 +450,6 @@ function calculateSASTScore(findings: SASTFinding[]): number {
   return Math.max(0, Math.min(100, score));
 }
 
-// Type augmentation for window.electronAPI
-declare global {
-  interface Window {
-    electronAPI?: {
-      gitlab?: {
-        connect: (url: string, token: string) => Promise<{ success: boolean; user?: GitLabUser; error?: string }>;
-        disconnect: () => Promise<void>;
-        listProjects: (search?: string) => Promise<GitLabProject[]>;
-        getProject: (projectId: number) => Promise<GitLabProject>;
-        scanProject: (projectId: number) => Promise<GitLabScanResults>;
-      };
-      // ... other APIs
-    } & Record<string, unknown>;
-  }
-}
+// Types are declared globally in src/types/electron.d.ts
 
 export default useGitLabStore;

@@ -145,7 +145,7 @@ export const useThreatIntelStore = create<ThreatIntelState>((set, get) => ({
   fetchKEVCatalog: async (forceRefresh = false) => {
     set({ isLoading: true, error: null });
     try {
-      const catalog = await window.electronAPI?.threatIntel?.getKEVCatalog(forceRefresh);
+      const catalog = await window.electronAPI?.threatIntel?.getKEVCatalog(forceRefresh) as KEVCatalog | null;
       set({
         kevCatalog: catalog ?? null,
         isLoading: false,
@@ -163,7 +163,7 @@ export const useThreatIntelStore = create<ThreatIntelState>((set, get) => ({
   fetchKEVStats: async () => {
     set({ isLoading: true, error: null });
     try {
-      const stats = await window.electronAPI?.threatIntel?.getKEVStats();
+      const stats = await window.electronAPI?.threatIntel?.getKEVStats() as KEVStats | null;
       set({
         kevStats: stats ?? null,
         isLoading: false
@@ -180,7 +180,7 @@ export const useThreatIntelStore = create<ThreatIntelState>((set, get) => ({
   searchKEV: async (query: string) => {
     set({ isLoading: true, error: null, searchQuery: query });
     try {
-      const results = await window.electronAPI?.threatIntel?.searchKEV(query);
+      const results = await window.electronAPI?.threatIntel?.searchKEV(query) as KEVEntry[] | null;
       set({
         searchResults: results ?? [],
         isLoading: false
@@ -196,7 +196,7 @@ export const useThreatIntelStore = create<ThreatIntelState>((set, get) => ({
   // Check if CVE is in KEV
   checkCVEInKEV: async (cveId: string) => {
     try {
-      const kevEntry = await window.electronAPI?.threatIntel?.checkKEV(cveId);
+      const kevEntry = await window.electronAPI?.threatIntel?.checkKEV(cveId) as KEVEntry | null;
       return kevEntry ?? null;
     } catch (error) {
       console.error('KEV check failed:', error);
@@ -231,7 +231,7 @@ export const useThreatIntelStore = create<ThreatIntelState>((set, get) => ({
   analyzeCVE: async (cveId: string) => {
     set({ isAnalyzing: true, error: null });
     try {
-      const result = await window.electronAPI?.threatIntel?.analyzeCVE(cveId);
+      const result = await window.electronAPI?.threatIntel?.analyzeCVE(cveId) as ThreatIntelResult | null;
       set({
         selectedCVE: result ?? null,
         isAnalyzing: false
@@ -250,7 +250,7 @@ export const useThreatIntelStore = create<ThreatIntelState>((set, get) => ({
   analyzeCVEsBatch: async (cveIds: string[]) => {
     set({ isAnalyzing: true, error: null });
     try {
-      const results = await window.electronAPI?.threatIntel?.analyzeCVEsBatch(cveIds);
+      const results = await window.electronAPI?.threatIntel?.analyzeCVEsBatch(cveIds) as ThreatIntelResult[] | null;
       set({
         analysisResults: results ?? [],
         isAnalyzing: false
@@ -348,23 +348,6 @@ export const getKEVCount = (state: ThreatIntelState): number => {
   return state.analysisResults.filter(r => r.kev !== undefined).length;
 };
 
-// Type augmentation for window.electronAPI
-declare global {
-  interface Window {
-    electronAPI?: {
-      threatIntel?: {
-        getEPSS: (cveId: string) => Promise<EPSSScore | null>;
-        getEPSSBatch: (cveIds: string[]) => Promise<Record<string, EPSSScore>>;
-        getKEVCatalog: (forceRefresh?: boolean) => Promise<KEVCatalog | null>;
-        checkKEV: (cveId: string) => Promise<KEVEntry | null>;
-        getKEVStats: () => Promise<KEVStats>;
-        searchKEV: (query: string) => Promise<KEVEntry[]>;
-        analyzeCVE: (cveId: string) => Promise<ThreatIntelResult>;
-        analyzeCVEsBatch: (cveIds: string[]) => Promise<ThreatIntelResult[]>;
-        clearCache: () => Promise<{ success: boolean }>;
-      };
-    } & Record<string, unknown>;
-  }
-}
+// Types are declared globally in src/types/electron.d.ts
 
 export default useThreatIntelStore;

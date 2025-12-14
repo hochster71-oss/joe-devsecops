@@ -35,7 +35,7 @@ import {
   PieChart,
   TrendingUp,
   Zap,
-  Vault,
+  Archive,
   Plus,
   Trash2,
   Copy,

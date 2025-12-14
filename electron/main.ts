@@ -12,6 +12,14 @@ import { secureVault } from './secure-vault';
 import { authenticator } from 'otplib';
 import * as QRCode from 'qrcode';
 import Store from 'electron-store';
+import { ollamaService } from '../src/services/ollamaService';
+import { analyticsService } from './analytics-service';
+import { spaceComplianceService } from './space-compliance-service';
+import { notificationService } from './notification-service';
+import { iacScanner } from './iac-scanner';
+import { apiSecurityScanner } from './api-security-scanner';
+import { siemConnector } from './integrations/siem-connector';
+import { ticketingService } from './integrations/ticketing';
 
 // ========================================
 // SECURITY CONFIGURATION
@@ -260,7 +268,7 @@ function createWindow(): void {
     minHeight: 576,
     center: true, // Center window on screen
     title: 'J.O.E. DevSecOps Arsenal - Dark Wolf Solutions',
-    // icon: path.join(__dirname, '../../resources/icons/joe-icon.png'), // TODO: Add PNG icon
+    icon: path.join(__dirname, '../../resources/icons/joe-icon.png'),
     backgroundColor: '#1E1E1E', // Dark Wolf primary dark
     titleBarStyle: 'hidden',
     titleBarOverlay: {
@@ -1009,15 +1017,52 @@ ipcMain.handle('security-run-audit', async () => {
   }
 });
 
-// Auto-fix vulnerabilities
-ipcMain.handle('security-auto-fix', async () => {
-  console.log('[J.O.E. IPC] Running auto-fix...');
+// Auto-fix vulnerabilities with AI
+ipcMain.handle('security-auto-fix', async (_, findings?: Array<{
+  id: string;
+  title: string;
+  severity: string;
+  tool: string;
+  timestamp: string;
+  description?: string;
+  remediation?: string;
+  file?: string;
+  line?: number;
+}>) => {
+  console.log('[J.O.E. IPC] Running AI-powered auto-fix...', findings?.length ? `${findings.length} findings` : 'full scan');
   try {
-    const results = await securityScanner.autoFix();
-    console.log('[J.O.E. IPC] Auto-fix complete:', results);
+    const results = await securityScanner.autoFix(findings as any);
+    console.log('[J.O.E. IPC] Auto-fix complete:', {
+      fixed: results.fixed.length,
+      failed: results.failed.length,
+      poam: results.poam.length
+    });
     return results;
   } catch (error) {
     console.error('[J.O.E. IPC] Auto-fix error:', error);
+    throw error;
+  }
+});
+
+// Generate POAM (Plan of Action and Milestones)
+ipcMain.handle('security-generate-poam', async (_, findings: Array<{
+  id: string;
+  title: string;
+  severity: string;
+  tool: string;
+  timestamp: string;
+  description?: string;
+  remediation?: string;
+  file?: string;
+  line?: number;
+}>) => {
+  console.log('[J.O.E. IPC] Generating POAM for', findings.length, 'findings...');
+  try {
+    const poam = await securityScanner.generatePoam(findings as any);
+    console.log('[J.O.E. IPC] POAM generated:', poam.poamId, '-', poam.items.length, 'items');
+    return poam;
+  } catch (error) {
+    console.error('[J.O.E. IPC] POAM generation error:', error);
     throw error;
   }
 });
@@ -1098,6 +1143,67 @@ ipcMain.handle('security-generate-sarif', async (_, findings: any[]) => {
     console.error('[J.O.E. IPC] SARIF generation error:', error);
     throw error;
   }
+});
+
+// ========================================
+// OLLAMA AI IPC HANDLERS
+// J.O.E. AI Security Intelligence Engine
+// ========================================
+
+ipcMain.handle('ollama-chat', async (_, message: string, context?: string) => {
+  console.log('[J.O.E. AI] Processing chat request...');
+  try {
+    const response = await ollamaService.chat(message, context);
+    console.log('[J.O.E. AI] Chat response generated');
+    return response;
+  } catch (error) {
+    console.error('[J.O.E. AI] Chat error:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('ollama-get-models', async () => {
+  console.log('[J.O.E. AI] Fetching available models...');
+  try {
+    const models = await ollamaService.getModels();
+    console.log('[J.O.E. AI] Models fetched:', models.length);
+    return models;
+  } catch (error) {
+    console.error('[J.O.E. AI] Get models error:', error);
+    return [];
+  }
+});
+
+ipcMain.handle('ollama-set-model', async (_, model: string) => {
+  console.log('[J.O.E. AI] Setting model to:', model);
+  ollamaService.setModel(model);
+  return { success: true, model };
+});
+
+// Streaming chat support
+let streamAbortController: AbortController | null = null;
+
+ipcMain.on('ollama-stream-start', async (event, message: string, context?: string) => {
+  console.log('[J.O.E. AI] Starting streaming chat...');
+  streamAbortController = new AbortController();
+
+  try {
+    for await (const chunk of ollamaService.streamChat(message, context)) {
+      if (streamAbortController?.signal.aborted) break;
+      event.sender.send('ollama-stream-chunk', chunk);
+    }
+    event.sender.send('ollama-stream-end');
+  } catch (error) {
+    console.error('[J.O.E. AI] Stream error:', error);
+    event.sender.send('ollama-stream-end');
+  }
+});
+
+ipcMain.on('ollama-stream-cancel', () => {
+  console.log('[J.O.E. AI] Cancelling stream...');
+  ollamaService.cancelStream();
+  streamAbortController?.abort();
+  streamAbortController = null;
 });
 
 // ========================================
@@ -1985,4 +2091,797 @@ ipcMain.handle('vault-export', async () => {
     logSecurityEvent('VAULT_EXPORT_ERROR', activeSession?.username, false, errorMsg, 'WARNING');
     throw error;
   }
+});
+
+// ========================================
+// AI TOUCHPOINT IPC HANDLERS
+// Space-Grade Security Intelligence System
+// ========================================
+
+// AI Touchpoint query (tooltip/panel)
+ipcMain.handle('ai-touchpoint-query', async (_, context: any) => {
+  console.log('[J.O.E. AI Touchpoint] Query for:', context.elementType);
+  logSecurityEvent('AI_TOUCHPOINT_QUERY', activeSession?.username, true, `Type: ${context.elementType}`);
+
+  try {
+    const response = await ollamaService.generateTouchpointResponse(context);
+    return response;
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'AI touchpoint query failed';
+    logSecurityEvent('AI_TOUCHPOINT_ERROR', activeSession?.username, false, errorMsg, 'WARNING');
+    throw error;
+  }
+});
+
+// AI Touchpoint streaming query
+ipcMain.handle('ai-touchpoint-stream', async (_, context: any) => {
+  console.log('[J.O.E. AI Touchpoint] Streaming query for:', context.elementType);
+  logSecurityEvent('AI_TOUCHPOINT_STREAM', activeSession?.username, true, `Type: ${context.elementType}`);
+
+  try {
+    const chunks: string[] = [];
+    for await (const chunk of ollamaService.streamTouchpointResponse(context)) {
+      chunks.push(chunk.content);
+    }
+    return chunks.join('');
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'AI streaming failed';
+    logSecurityEvent('AI_TOUCHPOINT_STREAM_ERROR', activeSession?.username, false, errorMsg, 'WARNING');
+    throw error;
+  }
+});
+
+// Analyze metric for dashboard touchpoints
+ipcMain.handle('ai-touchpoint-analyze-metric', async (_, params: { metricName: string; value: number; trend: string; context?: any }) => {
+  console.log('[J.O.E. AI Touchpoint] Analyzing metric:', params.metricName);
+  logSecurityEvent('AI_METRIC_ANALYSIS', activeSession?.username, true, `Metric: ${params.metricName}`);
+
+  try {
+    const response = await ollamaService.analyzeMetric(params.metricName, params.value, params.trend as any, params.context);
+    return response;
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Metric analysis failed';
+    logSecurityEvent('AI_METRIC_ERROR', activeSession?.username, false, errorMsg, 'WARNING');
+    throw error;
+  }
+});
+
+// Generate attack path diagram
+ipcMain.handle('ai-touchpoint-generate-attack-path', async (_, finding: any) => {
+  console.log('[J.O.E. AI Touchpoint] Generating attack path for:', finding.id || 'finding');
+  logSecurityEvent('AI_ATTACK_PATH', activeSession?.username, true, `Finding: ${finding.id || 'unknown'}`);
+
+  try {
+    const mermaidDiagram = await ollamaService.generateAttackPath(finding);
+    return mermaidDiagram;
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Attack path generation failed';
+    logSecurityEvent('AI_ATTACK_PATH_ERROR', activeSession?.username, false, errorMsg, 'WARNING');
+    throw error;
+  }
+});
+
+// Cancel pending AI query (placeholder - actual implementation needs AbortController)
+ipcMain.handle('ai-touchpoint-cancel', async (_, queryId: string) => {
+  console.log('[J.O.E. AI Touchpoint] Cancel request:', queryId);
+  // In a full implementation, this would cancel the pending request
+  return { success: true };
+});
+
+// ========================================
+// ANALYTICS IPC HANDLERS
+// SQLite-Powered Self-Learning Analytics Engine
+// ========================================
+
+// Initialize analytics session on app ready
+app.whenReady().then(() => {
+  // Start analytics session (will be associated with user on login)
+  analyticsService.startSession();
+});
+
+// End analytics session on quit
+app.on('before-quit', () => {
+  analyticsService.shutdown();
+});
+
+// Track analytics event
+ipcMain.handle('analytics-track', async (_, event: {
+  type: string;
+  elementType: string;
+  elementId?: string;
+  durationMs?: number;
+  context?: Record<string, unknown>;
+}) => {
+  console.log('[J.O.E. Analytics] Tracking:', event.type, event.elementType);
+
+  try {
+    // Set current user if available
+    if (activeSession?.username) {
+      analyticsService.setUser(activeSession.username);
+    }
+
+    const id = analyticsService.track({
+      type: event.type as any,
+      elementType: event.elementType,
+      elementId: event.elementId,
+      durationMs: event.durationMs,
+      context: event.context
+    });
+
+    return { success: true, id };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Analytics track failed';
+    console.error('[J.O.E. Analytics] Track error:', errorMsg);
+    return { success: false, error: errorMsg };
+  }
+});
+
+// Rate AI response
+ipcMain.handle('analytics-rate', async (_, queryId: string, rating: number) => {
+  console.log('[J.O.E. Analytics] Rating query:', queryId, 'Rating:', rating);
+  logSecurityEvent('AI_RESPONSE_RATED', activeSession?.username, true, `Rating: ${rating}/5`);
+
+  try {
+    analyticsService.rateResponse(queryId, rating);
+    return { success: true };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Rating failed';
+    console.error('[J.O.E. Analytics] Rate error:', errorMsg);
+    return { success: false, error: errorMsg };
+  }
+});
+
+// Get user behavior profile
+ipcMain.handle('analytics-get-profile', async () => {
+  try {
+    if (activeSession?.username) {
+      analyticsService.setUser(activeSession.username);
+    }
+    return analyticsService.getUserProfile();
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Get profile failed';
+    console.error('[J.O.E. Analytics] Get profile error:', errorMsg);
+    return null;
+  }
+});
+
+// Get analytics insights
+ipcMain.handle('analytics-get-insights', async (_, timeframe?: { start: number; end: number }) => {
+  try {
+    return analyticsService.getInsights(timeframe);
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Get insights failed';
+    console.error('[J.O.E. Analytics] Get insights error:', errorMsg);
+    return {
+      totalInteractions: 0,
+      totalQueries: 0,
+      avgQueryRating: 0,
+      topElementTypes: [],
+      interactionsByHour: {},
+      avgResponseTime: 0,
+      cacheHitRate: 0
+    };
+  }
+});
+
+// Get detected security patterns
+ipcMain.handle('analytics-get-patterns', async (_, severity?: string) => {
+  try {
+    return analyticsService.getSecurityPatterns(severity);
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Get patterns failed';
+    console.error('[J.O.E. Analytics] Get patterns error:', errorMsg);
+    return [];
+  }
+});
+
+// Get learning insights
+ipcMain.handle('analytics-get-learning-insights', async () => {
+  try {
+    return analyticsService.getLearningInsights();
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Get learning insights failed';
+    console.error('[J.O.E. Analytics] Get learning insights error:', errorMsg);
+    return [];
+  }
+});
+
+// Get analytics statistics
+ipcMain.handle('analytics-get-stats', async () => {
+  try {
+    return analyticsService.getStats();
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Get stats failed';
+    console.error('[J.O.E. Analytics] Get stats error:', errorMsg);
+    return {
+      totalInteractions: 0,
+      totalQueries: 0,
+      totalSessions: 0,
+      totalUsers: 0,
+      avgRating: 0,
+      cacheSize: 0,
+      dbSize: '0 KB'
+    };
+  }
+});
+
+// Cleanup old analytics data
+ipcMain.handle('analytics-cleanup', async (_, daysToKeep?: number) => {
+  try {
+    analyticsService.cleanup(daysToKeep || 90);
+    logSecurityEvent('ANALYTICS_CLEANUP', activeSession?.username, true, `Kept ${daysToKeep || 90} days`);
+    return { success: true };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Cleanup failed';
+    console.error('[J.O.E. Analytics] Cleanup error:', errorMsg);
+    return { success: false, error: errorMsg };
+  }
+});
+
+// ========================================
+// SPACE-GRADE COMPLIANCE IPC HANDLERS
+// NASA-STD-8719.13 | DO-178C | Common Criteria
+// ========================================
+
+// Register project for compliance assessment
+ipcMain.handle('space-compliance-register-project', async (_, config: {
+  name: string;
+  type: 'spacecraft' | 'avionics' | 'ground-system' | 'mission-control' | 'general';
+  primaryFramework: 'NASA-STD-8719' | 'DO-178C' | 'Common-Criteria';
+  targetLevel: string;
+  description?: string;
+}) => {
+  try {
+    const projectId = spaceComplianceService.registerProject(config);
+    logSecurityEvent('SPACE_COMPLIANCE_PROJECT_REGISTERED', activeSession?.username, true, `Project: ${config.name}`);
+    return { success: true, projectId };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Project registration failed';
+    console.error('[J.O.E. Space Compliance] Register project error:', errorMsg);
+    return { success: false, error: errorMsg };
+  }
+});
+
+// Get project details
+ipcMain.handle('space-compliance-get-project', async (_, projectId: string) => {
+  try {
+    return spaceComplianceService.getProject(projectId);
+  } catch (error) {
+    console.error('[J.O.E. Space Compliance] Get project error:', error);
+    return null;
+  }
+});
+
+// List all projects
+ipcMain.handle('space-compliance-list-projects', async () => {
+  try {
+    return spaceComplianceService.listProjects();
+  } catch (error) {
+    console.error('[J.O.E. Space Compliance] List projects error:', error);
+    return [];
+  }
+});
+
+// Assess NASA Safety
+ipcMain.handle('space-compliance-assess-nasa', async (_, params: {
+  projectName: string;
+  assessor: string;
+  hazardAnalysis: {
+    lossOfLife: boolean;
+    severeInjury: boolean;
+    missionCritical: boolean;
+    propertyDamage: 'none' | 'minor' | 'major' | 'critical';
+  };
+  safetyMetrics: {
+    hazardsIdentified: number;
+    hazardsMitigated: number;
+    openSafetyIssues: number;
+    safetyReviewsCompleted: number;
+    independentReviewsCompleted: number;
+  };
+  existingControls: string[];
+}) => {
+  try {
+    const result = spaceComplianceService.assessNASASafety(params);
+    logSecurityEvent('NASA_SAFETY_ASSESSMENT', activeSession?.username, true,
+      `Project: ${params.projectName}, Category: ${result.assessment.nasaCategory}, Score: ${result.assessment.overallScore}%`);
+    return { success: true, result };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'NASA assessment failed';
+    console.error('[J.O.E. Space Compliance] NASA assessment error:', errorMsg);
+    return { success: false, error: errorMsg };
+  }
+});
+
+// Assess DO-178C
+ipcMain.handle('space-compliance-assess-do178c', async (_, params: {
+  projectName: string;
+  assessor: string;
+  failureCondition: 'catastrophic' | 'hazardous' | 'major' | 'minor' | 'no-effect';
+  coverageMetrics: {
+    statementCoverage: number;
+    branchCoverage: number;
+    mcdcCoverage: number;
+    requirementsCoverage: number;
+    testCaseCoverage: number;
+  };
+  documentationStatus: Record<string, boolean>;
+  verificationActivities: string[];
+}) => {
+  try {
+    const result = spaceComplianceService.assessDO178C(params);
+    logSecurityEvent('DO178C_ASSESSMENT', activeSession?.username, true,
+      `Project: ${params.projectName}, DAL: ${result.assessment.do178cLevel}, Score: ${result.assessment.overallScore}%`);
+    return { success: true, result };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'DO-178C assessment failed';
+    console.error('[J.O.E. Space Compliance] DO-178C assessment error:', errorMsg);
+    return { success: false, error: errorMsg };
+  }
+});
+
+// Assess Common Criteria
+ipcMain.handle('space-compliance-assess-cc', async (_, params: {
+  projectName: string;
+  assessor: string;
+  targetEAL: 'EAL-1' | 'EAL-2' | 'EAL-3' | 'EAL-4' | 'EAL-5' | 'EAL-6' | 'EAL-7';
+  assuranceComponents: Record<string, 'satisfied' | 'partial' | 'not-satisfied'>;
+  securityFunctions: string[];
+}) => {
+  try {
+    const result = spaceComplianceService.assessCommonCriteria(params);
+    logSecurityEvent('COMMON_CRITERIA_ASSESSMENT', activeSession?.username, true,
+      `Project: ${params.projectName}, Target: ${params.targetEAL}, Score: ${result.assessment.overallScore}%`);
+    return { success: true, result };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Common Criteria assessment failed';
+    console.error('[J.O.E. Space Compliance] CC assessment error:', errorMsg);
+    return { success: false, error: errorMsg };
+  }
+});
+
+// Get assessment by ID
+ipcMain.handle('space-compliance-get-assessment', async (_, assessmentId: string) => {
+  try {
+    return spaceComplianceService.getAssessment(assessmentId);
+  } catch (error) {
+    console.error('[J.O.E. Space Compliance] Get assessment error:', error);
+    return null;
+  }
+});
+
+// List all assessments
+ipcMain.handle('space-compliance-list-assessments', async () => {
+  try {
+    return spaceComplianceService.listAssessments();
+  } catch (error) {
+    console.error('[J.O.E. Space Compliance] List assessments error:', error);
+    return [];
+  }
+});
+
+// Get framework information
+ipcMain.handle('space-compliance-get-framework-info', async (_, framework: 'NASA-STD-8719' | 'DO-178C' | 'Common-Criteria') => {
+  try {
+    return spaceComplianceService.getFrameworkInfo(framework);
+  } catch (error) {
+    console.error('[J.O.E. Space Compliance] Get framework info error:', error);
+    return null;
+  }
+});
+
+// Get cross-framework mappings
+ipcMain.handle('space-compliance-get-mappings', async (_, framework: string, controlId: string) => {
+  try {
+    return spaceComplianceService.getCrossFrameworkMappings(framework, controlId);
+  } catch (error) {
+    console.error('[J.O.E. Space Compliance] Get mappings error:', error);
+    return [];
+  }
+});
+
+// Generate unified compliance report
+ipcMain.handle('space-compliance-unified-report', async (_, assessmentIds: string[]) => {
+  try {
+    const report = spaceComplianceService.generateUnifiedReport(assessmentIds);
+    logSecurityEvent('UNIFIED_COMPLIANCE_REPORT', activeSession?.username, true,
+      `Assessments: ${assessmentIds.length}, Overall Score: ${report.overallScore}%`);
+    return { success: true, report };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Report generation failed';
+    console.error('[J.O.E. Space Compliance] Unified report error:', errorMsg);
+    return { success: false, error: errorMsg };
+  }
+});
+
+// ========================================
+// NOTIFICATION SERVICE IPC HANDLERS
+// ========================================
+
+// Send notification
+ipcMain.handle('notification-send', async (_, payload: {
+  title: string;
+  message: string;
+  severity: string;
+  channels: string[];
+  metadata?: any;
+}) => {
+  try {
+    const results = await notificationService.sendNotification(payload as any);
+    logSecurityEvent('NOTIFICATION_SENT', activeSession?.username, true,
+      `Channels: ${payload.channels.join(', ')}, Severity: ${payload.severity}`);
+    return { success: true, results };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Notification failed';
+    console.error('[J.O.E. Notifications] Send error:', errorMsg);
+    return { success: false, error: errorMsg };
+  }
+});
+
+// Configure channel
+ipcMain.handle('notification-configure-channel', async (_, channel: string, config: any) => {
+  try {
+    notificationService.configureChannel(channel as any, config);
+    logSecurityEvent('NOTIFICATION_CHANNEL_CONFIGURED', activeSession?.username, true, `Channel: ${channel}`);
+    return { success: true };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Configuration failed';
+    console.error('[J.O.E. Notifications] Configure error:', errorMsg);
+    return { success: false, error: errorMsg };
+  }
+});
+
+// Get channel config
+ipcMain.handle('notification-get-channel-config', async (_, channel: string) => {
+  try {
+    return notificationService.getChannelConfig(channel as any);
+  } catch (error) {
+    console.error('[J.O.E. Notifications] Get config error:', error);
+    return null;
+  }
+});
+
+// Test channel
+ipcMain.handle('notification-test-channel', async (_, channel: string) => {
+  try {
+    const result = await notificationService.testChannel(channel as any);
+    return result;
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Test failed';
+    return { success: false, error: errorMsg };
+  }
+});
+
+// Add alert rule
+ipcMain.handle('notification-add-rule', async (_, rule: any) => {
+  try {
+    const ruleId = notificationService.addAlertRule(rule);
+    logSecurityEvent('ALERT_RULE_ADDED', activeSession?.username, true, `Rule: ${rule.name}`);
+    return { success: true, ruleId };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Add rule failed';
+    return { success: false, error: errorMsg };
+  }
+});
+
+// Remove alert rule
+ipcMain.handle('notification-remove-rule', async (_, ruleId: string) => {
+  try {
+    notificationService.removeAlertRule(ruleId);
+    logSecurityEvent('ALERT_RULE_REMOVED', activeSession?.username, true, `Rule ID: ${ruleId}`);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: 'Remove rule failed' };
+  }
+});
+
+// Get alert rules
+ipcMain.handle('notification-get-rules', async () => {
+  try {
+    return notificationService.getAlertRules();
+  } catch (error) {
+    return [];
+  }
+});
+
+// Process security finding
+ipcMain.handle('notification-process-finding', async (_, finding: any) => {
+  try {
+    await notificationService.processSecurityFinding(finding);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: 'Processing failed' };
+  }
+});
+
+// ========================================
+// IAC SCANNER IPC HANDLERS
+// ========================================
+
+// Select directory for IaC scan
+ipcMain.handle('iac-select-directory', async () => {
+  try {
+    const result = await dialog.showOpenDialog({
+      properties: ['openDirectory'],
+      title: 'Select IaC Directory'
+    });
+    return result.canceled ? null : result.filePaths[0];
+  } catch (error) {
+    return null;
+  }
+});
+
+// Scan directory for IaC issues
+ipcMain.handle('iac-scan-directory', async (_, dirPath: string, options?: { recursive?: boolean }) => {
+  try {
+    const results = await iacScanner.scanDirectory(dirPath, options);
+    logSecurityEvent('IAC_SCAN_COMPLETED', activeSession?.username, true,
+      `Files: ${results.filesScanned}, Findings: ${results.summary.total}`);
+    return { success: true, results };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'IaC scan failed';
+    console.error('[J.O.E. IaC Scanner] Scan error:', errorMsg);
+    return { success: false, error: errorMsg };
+  }
+});
+
+// Scan single file
+ipcMain.handle('iac-scan-file', async (_, filePath: string) => {
+  try {
+    const results = await iacScanner.scanFile(filePath);
+    return { success: true, results };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'File scan failed';
+    return { success: false, error: errorMsg };
+  }
+});
+
+// Get supported IaC types
+ipcMain.handle('iac-get-supported-types', async () => {
+  return ['terraform', 'cloudformation', 'kubernetes', 'dockerfile', 'ansible', 'helm'];
+});
+
+// Get rules for specific IaC type
+ipcMain.handle('iac-get-rules', async (_, iacType?: string) => {
+  try {
+    return iacScanner.getRules(iacType as any);
+  } catch (error) {
+    return [];
+  }
+});
+
+// ========================================
+// API SECURITY SCANNER IPC HANDLERS
+// ========================================
+
+// Select OpenAPI spec file
+ipcMain.handle('api-security-select-spec', async () => {
+  try {
+    const result = await dialog.showOpenDialog({
+      properties: ['openFile'],
+      title: 'Select OpenAPI/Swagger Specification',
+      filters: [
+        { name: 'OpenAPI Specs', extensions: ['yaml', 'yml', 'json'] },
+        { name: 'All Files', extensions: ['*'] }
+      ]
+    });
+    return result.canceled ? null : result.filePaths[0];
+  } catch (error) {
+    return null;
+  }
+});
+
+// Scan OpenAPI specification
+ipcMain.handle('api-security-scan-spec', async (_, specPath: string) => {
+  try {
+    const results = await apiSecurityScanner.scanSpecFile(specPath);
+    logSecurityEvent('API_SECURITY_SCAN', activeSession?.username, true,
+      `Endpoints: ${results.endpointsAnalyzed}, Findings: ${results.summary.total}, Score: ${results.securityScore}`);
+    return { success: true, results };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'API scan failed';
+    console.error('[J.O.E. API Security] Scan error:', errorMsg);
+    return { success: false, error: errorMsg };
+  }
+});
+
+// Scan spec from URL
+ipcMain.handle('api-security-scan-url', async (_, url: string) => {
+  try {
+    const results = await apiSecurityScanner.scanFromUrl(url);
+    logSecurityEvent('API_SECURITY_SCAN_URL', activeSession?.username, true,
+      `URL: ${url}, Findings: ${results.summary.total}`);
+    return { success: true, results };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'URL scan failed';
+    return { success: false, error: errorMsg };
+  }
+});
+
+// Get OWASP categories
+ipcMain.handle('api-security-get-owasp-categories', async () => {
+  return apiSecurityScanner.getOWASPCategories();
+});
+
+// Get rules
+ipcMain.handle('api-security-get-rules', async () => {
+  return apiSecurityScanner.getRules();
+});
+
+// ========================================
+// SIEM CONNECTOR IPC HANDLERS
+// ========================================
+
+// Configure SIEM platform
+ipcMain.handle('siem-configure', async (_, platform: string, config: any) => {
+  try {
+    siemConnector.configure(platform as any, config);
+    logSecurityEvent('SIEM_CONFIGURED', activeSession?.username, true, `Platform: ${platform}`);
+    return { success: true };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'SIEM configuration failed';
+    return { success: false, error: errorMsg };
+  }
+});
+
+// Get SIEM config
+ipcMain.handle('siem-get-config', async (_, platform: string) => {
+  try {
+    return siemConnector.getConfig(platform as any);
+  } catch (error) {
+    return null;
+  }
+});
+
+// Test SIEM connection
+ipcMain.handle('siem-test-connection', async (_, platform: string) => {
+  try {
+    const result = await siemConnector.testConnection(platform as any);
+    return result;
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Test failed';
+    return { success: false, error: errorMsg };
+  }
+});
+
+// Send security event to SIEM
+ipcMain.handle('siem-send-event', async (_, platform: string, event: any) => {
+  try {
+    await siemConnector.sendEvent(platform as any, event);
+    return { success: true };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Send event failed';
+    return { success: false, error: errorMsg };
+  }
+});
+
+// Send batch events
+ipcMain.handle('siem-send-batch', async (_, platform: string, events: any[]) => {
+  try {
+    await siemConnector.sendBatch(platform as any, events);
+    logSecurityEvent('SIEM_BATCH_SENT', activeSession?.username, true,
+      `Platform: ${platform}, Events: ${events.length}`);
+    return { success: true };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Batch send failed';
+    return { success: false, error: errorMsg };
+  }
+});
+
+// Export findings to SIEM
+ipcMain.handle('siem-export-findings', async (_, platform: string, findings: any[]) => {
+  try {
+    await siemConnector.exportFindings(platform as any, findings);
+    logSecurityEvent('SIEM_FINDINGS_EXPORTED', activeSession?.username, true,
+      `Platform: ${platform}, Findings: ${findings.length}`);
+    return { success: true };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Export failed';
+    return { success: false, error: errorMsg };
+  }
+});
+
+// Get supported SIEM platforms
+ipcMain.handle('siem-get-platforms', async () => {
+  return ['splunk', 'elastic', 'sentinel', 'qradar'];
+});
+
+// ========================================
+// TICKETING INTEGRATION IPC HANDLERS
+// ========================================
+
+// Configure ticketing platform
+ipcMain.handle('ticketing-configure', async (_, platform: string, config: any) => {
+  try {
+    ticketingService.configure(platform as any, config);
+    logSecurityEvent('TICKETING_CONFIGURED', activeSession?.username, true, `Platform: ${platform}`);
+    return { success: true };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Ticketing configuration failed';
+    return { success: false, error: errorMsg };
+  }
+});
+
+// Get ticketing config
+ipcMain.handle('ticketing-get-config', async (_, platform: string) => {
+  try {
+    return ticketingService.getConfig(platform as any);
+  } catch (error) {
+    return null;
+  }
+});
+
+// Test ticketing connection
+ipcMain.handle('ticketing-test-connection', async (_, platform: string) => {
+  try {
+    const result = await ticketingService.testConnection(platform as any);
+    return result;
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Test failed';
+    return { success: false, error: errorMsg };
+  }
+});
+
+// Create ticket from finding
+ipcMain.handle('ticketing-create-ticket', async (_, platform: string, finding: any) => {
+  try {
+    const ticket = await ticketingService.createTicket(platform as any, finding);
+    logSecurityEvent('TICKET_CREATED', activeSession?.username, true,
+      `Platform: ${platform}, Ticket: ${ticket.ticketId}`);
+    return { success: true, ticket };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Ticket creation failed';
+    return { success: false, error: errorMsg };
+  }
+});
+
+// Create bulk tickets
+ipcMain.handle('ticketing-create-bulk', async (_, platform: string, findings: any[]) => {
+  try {
+    const tickets = await ticketingService.createBulkTickets(platform as any, findings);
+    logSecurityEvent('BULK_TICKETS_CREATED', activeSession?.username, true,
+      `Platform: ${platform}, Tickets: ${tickets.length}`);
+    return { success: true, tickets };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Bulk ticket creation failed';
+    return { success: false, error: errorMsg };
+  }
+});
+
+// Update ticket status
+ipcMain.handle('ticketing-update-status', async (_, platform: string, ticketId: string, status: string, comment?: string) => {
+  try {
+    await ticketingService.updateTicketStatus(platform as any, ticketId, status, comment);
+    return { success: true };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Status update failed';
+    return { success: false, error: errorMsg };
+  }
+});
+
+// Get ticket
+ipcMain.handle('ticketing-get-ticket', async (_, platform: string, ticketId: string) => {
+  try {
+    const ticket = await ticketingService.getTicket(platform as any, ticketId);
+    return { success: true, ticket };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Get ticket failed';
+    return { success: false, error: errorMsg };
+  }
+});
+
+// Sync ticket status
+ipcMain.handle('ticketing-sync-status', async (_, platform: string, ticketId: string) => {
+  try {
+    const status = await ticketingService.syncTicketStatus(platform as any, ticketId);
+    return { success: true, status };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Sync failed';
+    return { success: false, error: errorMsg };
+  }
+});
+
+// Get supported ticketing platforms
+ipcMain.handle('ticketing-get-platforms', async () => {
+  return ['jira', 'servicenow', 'azure-boards', 'github', 'linear'];
 });

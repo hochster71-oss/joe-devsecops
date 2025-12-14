@@ -336,9 +336,9 @@ export default function PipelineView() {
                 <div className="flex items-center gap-4">
                   {/* Security Gates */}
                   <div className="flex items-center gap-1">
-                    <Shield className={pipeline.securityGates.sast ? 'text-dws-green' : 'text-gray-600'} size={14} title="SAST" />
-                    <Lock className={pipeline.securityGates.secrets ? 'text-dws-green' : 'text-gray-600'} size={14} title="Secrets" />
-                    <Eye className={pipeline.securityGates.container ? 'text-dws-green' : 'text-gray-600'} size={14} title="Container" />
+                    <span title="SAST"><Shield className={pipeline.securityGates.sast ? 'text-dws-green' : 'text-gray-600'} size={14} /></span>
+                    <span title="Secrets"><Lock className={pipeline.securityGates.secrets ? 'text-dws-green' : 'text-gray-600'} size={14} /></span>
+                    <span title="Container"><Eye className={pipeline.securityGates.container ? 'text-dws-green' : 'text-gray-600'} size={14} /></span>
                   </div>
                   <div className="text-right">
                     <p className="text-gray-400 text-sm">{pipeline.lastRun}</p>

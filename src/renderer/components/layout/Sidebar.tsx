@@ -16,7 +16,13 @@ import {
   Container,
   GitlabIcon,
   Target,
-  Crosshair
+  Crosshair,
+  Satellite,
+  Brain,
+  Cloud,
+  Globe,
+  Link2,
+  Bell
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -24,14 +30,19 @@ const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/findings', label: 'Security Findings', icon: ShieldAlert },
   { path: '/threat-intel', label: 'Threat Intelligence', icon: Target },
+  { path: '/iac-security', label: 'IaC Security', icon: Cloud },
+  { path: '/api-security', label: 'API Security', icon: Globe },
   { path: '/kubernetes', label: 'Kubernetes Security', icon: Container },
   { path: '/gitlab', label: 'GitLab Security', icon: GitlabIcon },
   { path: '/supply-chain', label: 'Supply Chain', icon: Package },
   { path: '/compliance', label: 'Compliance', icon: ClipboardCheck },
+  { path: '/space-compliance', label: 'Space-Grade', icon: Satellite },
   { path: '/pipeline', label: 'Pipeline Security', icon: GitBranch },
   { path: '/ai-assistant', label: 'AI Assistant', icon: Bot },
   { path: '/mission-control', label: 'Mission Control', icon: Rocket },
   { path: '/attack-surface', label: 'Attack Surface', icon: Crosshair },
+  { path: '/integrations', label: 'Integrations', icon: Link2 },
+  { path: '/analytics', label: 'Analytics', icon: Brain },
   { path: '/reports', label: 'Reports', icon: FileText }
 ];
 

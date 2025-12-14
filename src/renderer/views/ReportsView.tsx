@@ -693,7 +693,7 @@ export default function ReportsView() {
         message={`Are you sure you want to delete "${reportToDelete?.name}"? This action cannot be undone.`}
         confirmText="Delete"
         cancelText="Cancel"
-        variant="critical"
+        variant="danger"
       />
     </div>
   );
