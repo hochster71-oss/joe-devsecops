@@ -153,7 +153,8 @@ class SecurityScanner {
 
       for (const [pkg, vuln] of Object.entries(vulnerabilities)) {
         const v = vuln as Record<string, unknown>;
-        const severity = this.mapNpmSeverity(v.severity);
+        const severity = this.mapNpmSeverity(v.severity as string);
+        const viaArray = v.via as Array<{ title?: string }> | undefined;
 
         findings.push({
           id: `npm-${pkg}-${Date.now()}`,
@@ -161,7 +162,7 @@ class SecurityScanner {
           severity,
           tool: 'npm audit',
           timestamp: new Date().toISOString(),
-          description: v.via?.[0]?.title || `Security vulnerability in ${pkg}`,
+          description: viaArray?.[0]?.title || `Security vulnerability in ${pkg}`,
           remediation: v.fixAvailable ?
             `Run: npm update ${pkg} or npm audit fix` :
             'No automatic fix available - consider replacing package'
@@ -182,7 +183,8 @@ class SecurityScanner {
 
           for (const [pkg, vuln] of Object.entries(vulnerabilities)) {
             const v = vuln as Record<string, unknown>;
-            const severity = this.mapNpmSeverity(v.severity);
+            const severity = this.mapNpmSeverity(v.severity as string);
+            const viaArray = v.via as Array<{ title?: string }> | undefined;
 
             findings.push({
               id: `npm-${pkg}-${Date.now()}`,
@@ -190,7 +192,7 @@ class SecurityScanner {
               severity,
               tool: 'npm audit',
               timestamp: new Date().toISOString(),
-              description: v.via?.[0]?.title || `Security vulnerability in ${pkg}`,
+              description: viaArray?.[0]?.title || `Security vulnerability in ${pkg}`,
               remediation: v.fixAvailable ?
                 `Run: npm update ${pkg} or npm audit fix` :
                 'No automatic fix available'
@@ -646,6 +648,9 @@ class SecurityScanner {
       for (const [name, version] of Object.entries(dependencies)) {
         const metadata = libraryMetadata[name];
         const hasVuln = vulnerablePackages.has(name);
+        const vulnLevel = vulnerablePackages.get(name);
+        // Filter out 'info' as it's not a valid vulnerabilityLevel
+        const validVulnLevel = vulnLevel !== 'info' ? vulnLevel : undefined;
 
         const info: LibraryInfo = {
           name,
@@ -655,7 +660,7 @@ class SecurityScanner {
           license: metadata?.license || 'Unknown',
           description: metadata?.description || `${name} package`,
           hasVulnerability: hasVuln,
-          vulnerabilityLevel: hasVuln ? vulnerablePackages.get(name) : undefined,
+          vulnerabilityLevel: hasVuln ? validVulnLevel : undefined,
           source: `https://www.npmjs.com/package/${name}`,
           aiAnalysis: metadata?.aiAnalysis || `Package ${name} - Review required for security assessment.`
         };
@@ -673,6 +678,9 @@ class SecurityScanner {
       for (const [name, version] of Object.entries(devDependencies)) {
         const metadata = libraryMetadata[name];
         const hasVuln = vulnerablePackages.has(name);
+        const devVulnLevel = vulnerablePackages.get(name);
+        // Filter out 'info' as it's not a valid vulnerabilityLevel
+        const validDevVulnLevel = devVulnLevel !== 'info' ? devVulnLevel : undefined;
 
         const info: LibraryInfo = {
           name,
@@ -682,7 +690,7 @@ class SecurityScanner {
           license: metadata?.license || 'Unknown',
           description: metadata?.description || `${name} development package`,
           hasVulnerability: hasVuln,
-          vulnerabilityLevel: hasVuln ? vulnerablePackages.get(name) : undefined,
+          vulnerabilityLevel: hasVuln ? validDevVulnLevel : undefined,
           source: `https://www.npmjs.com/package/${name}`,
           aiAnalysis: metadata?.aiAnalysis || `Dev dependency ${name} - Not included in production builds.`
         };
@@ -1298,10 +1306,11 @@ class SecurityScanner {
         for (const message of file.messages || []) {
           // Focus on security-related rules
           const securityRules = ['no-eval', 'no-implied-eval', 'no-new-func', 'security'];
-          if (securityRules.some(rule => message.ruleId?.includes(rule))) {
+          const ruleId = message.ruleId || 'unknown';
+          if (securityRules.some(rule => ruleId.includes(rule))) {
             findings.push({
-              id: `eslint-${message.ruleId}-${Date.now()}`,
-              title: `ESLint: ${message.ruleId}`,
+              id: `eslint-${ruleId}-${Date.now()}`,
+              title: `ESLint: ${ruleId}`,
               severity: message.severity === 2 ? 'high' : 'medium',
               tool: 'ESLint Security',
               timestamp: new Date().toISOString(),
@@ -1321,14 +1330,15 @@ class SecurityScanner {
       } else {
         // ESLint returns non-zero when there are errors, but stdout has results
         try {
-          const results = JSON.parse((error as { stdout?: string }).stdout);
+          const results = JSON.parse((error as { stdout?: string }).stdout as string);
           for (const file of results) {
             for (const message of file.messages || []) {
               const securityRules = ['no-eval', 'no-implied-eval', 'no-new-func', 'security'];
-              if (securityRules.some(rule => message.ruleId?.includes(rule))) {
+              const errRuleId = message.ruleId || 'unknown';
+              if (securityRules.some(rule => errRuleId.includes(rule))) {
                 findings.push({
-                  id: `eslint-${message.ruleId}-${Date.now()}`,
-                  title: `ESLint: ${message.ruleId}`,
+                  id: `eslint-${errRuleId}-${Date.now()}`,
+                  title: `ESLint: ${errRuleId}`,
                   severity: message.severity === 2 ? 'high' : 'medium',
                   tool: 'ESLint Security',
                   timestamp: new Date().toISOString(),

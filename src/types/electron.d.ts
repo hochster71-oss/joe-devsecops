@@ -80,6 +80,11 @@ interface ElectronAPI {
     runAllScans: (path: string) => Promise<unknown[]>;
   };
 
+  sbomBasic: {
+    generate: (path: string, format: string) => Promise<string>;
+    parse: (sbomPath: string) => Promise<unknown[]>;
+  };
+
   compliance: {
     getControls: () => Promise<unknown[]>;
     evaluateControl: (controlId: string) => Promise<unknown>;

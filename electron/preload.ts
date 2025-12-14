@@ -67,8 +67,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     runAllScans: (path: string) => ipcRenderer.invoke('scanner-run-all', path)
   },
 
-  // SBOM operations
-  sbom: {
+  // SBOM operations (basic - see full SBOM API below for advanced features)
+  sbomBasic: {
     generate: (path: string, format: string) =>
       ipcRenderer.invoke('sbom-generate', path, format),
     parse: (sbomPath: string) => ipcRenderer.invoke('sbom-parse', sbomPath)
@@ -677,7 +677,7 @@ export interface ElectronAPI {
     runSnyk: (path: string) => Promise<unknown[]>;
     runAllScans: (path: string) => Promise<unknown[]>;
   };
-  sbom: {
+  sbomBasic: {
     generate: (path: string, format: string) => Promise<string>;
     parse: (sbomPath: string) => Promise<unknown[]>;
   };

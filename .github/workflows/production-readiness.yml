@@ -38,11 +38,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: TypeScript type check (renderer)
-        run: npx tsc --noEmit -p tsconfig.json
-
-      - name: TypeScript type check (electron)
-        run: npx tsc --noEmit -p electron/tsconfig.json
+      - name: TypeScript type check
+        run: npm run typecheck
 
       - name: Check for type errors in stores
         run: |
