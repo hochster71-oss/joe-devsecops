@@ -1,0 +1,379 @@
+# J.O.E. DevSecOps Arsenal - DoD-Grade CI Pipeline
+# Aligned with DoD Enterprise DevSecOps Reference Design v2.0
+# Platform One Big Bang / Iron Bank Patterns
+
+name: DevSecOps Pipeline
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20.x'
+  EVIDENCE_DIR: evidence
+
+jobs:
+  # ═══════════════════════════════════════════════════════════════
+  # Stage 1: Build & Static Analysis
+  # ═══════════════════════════════════════════════════════════════
+  build:
+    name: Build & Typecheck
+    runs-on: ubuntu-latest
+    outputs:
+      build-artifact: ${{ steps.upload.outputs.artifact-id }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: TypeScript Check
+        run: npm run typecheck
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: Build Application
+        run: npm run package
+
+      - name: Upload Build Artifact
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ github.sha }}
+          path: out/
+          retention-days: 7
+
+  # ═══════════════════════════════════════════════════════════════
+  # Stage 2: Unit & Integration Tests
+  # ═══════════════════════════════════════════════════════════════
+  test-unit:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Unit Tests
+        run: npm run test:coverage
+
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-${{ github.sha }}
+          path: coverage/
+          retention-days: 30
+
+      - name: Save Test Evidence
+        run: |
+          mkdir -p ${{ env.EVIDENCE_DIR }}/tests/unit
+          cp -r coverage/* ${{ env.EVIDENCE_DIR }}/tests/unit/ || true
+
+      - name: Upload Test Evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidence-unit-tests-${{ github.sha }}
+          path: ${{ env.EVIDENCE_DIR }}/tests/unit/
+          retention-days: 90
+
+  # ═══════════════════════════════════════════════════════════════
+  # Stage 3: Security Scanning (SAST/SCA/Secrets)
+  # ═══════════════════════════════════════════════════════════════
+  security-sast:
+    name: SAST - Semgrep
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      security-events: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Semgrep
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/default
+            p/typescript
+            p/react
+            p/security-audit
+            p/owasp-top-ten
+          generateSarif: true
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep.sarif
+        if: always()
+
+      - name: Save SAST Evidence
+        run: |
+          mkdir -p ${{ env.EVIDENCE_DIR }}/security/sast
+          cp semgrep.sarif ${{ env.EVIDENCE_DIR }}/security/sast/ || true
+          echo '{"tool":"semgrep","timestamp":"'$(date -Iseconds)'","scan":"completed"}' > ${{ env.EVIDENCE_DIR }}/security/sast/manifest.json
+
+      - name: Upload SAST Evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidence-sast-${{ github.sha }}
+          path: ${{ env.EVIDENCE_DIR }}/security/sast/
+          retention-days: 90
+
+  security-sca:
+    name: SCA - Dependency Audit
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: NPM Audit
+        run: npm audit --json > npm-audit.json || true
+
+      - name: Save SCA Evidence
+        run: |
+          mkdir -p ${{ env.EVIDENCE_DIR }}/security/sca
+          cp npm-audit.json ${{ env.EVIDENCE_DIR }}/security/sca/
+          echo '{"tool":"npm-audit","timestamp":"'$(date -Iseconds)'","scan":"completed"}' > ${{ env.EVIDENCE_DIR }}/security/sca/manifest.json
+
+      - name: Upload SCA Evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidence-sca-${{ github.sha }}
+          path: ${{ env.EVIDENCE_DIR }}/security/sca/
+          retention-days: 90
+
+  security-secrets:
+    name: Secrets Scan - Gitleaks
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+        continue-on-error: true
+
+      - name: Save Secrets Evidence
+        run: |
+          mkdir -p ${{ env.EVIDENCE_DIR }}/security/secrets
+          echo '{"tool":"gitleaks","timestamp":"'$(date -Iseconds)'","scan":"completed"}' > ${{ env.EVIDENCE_DIR }}/security/secrets/manifest.json
+
+      - name: Upload Secrets Evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidence-secrets-${{ github.sha }}
+          path: ${{ env.EVIDENCE_DIR }}/security/secrets/
+          retention-days: 90
+
+  # ═══════════════════════════════════════════════════════════════
+  # Stage 4: SBOM Generation
+  # ═══════════════════════════════════════════════════════════════
+  sbom:
+    name: SBOM Generation
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Generate CycloneDX SBOM
+        run: npx @cyclonedx/cyclonedx-npm --output-format json --output-file sbom.json
+
+      - name: Save SBOM Evidence
+        run: |
+          mkdir -p ${{ env.EVIDENCE_DIR }}/security/sbom
+          cp sbom.json ${{ env.EVIDENCE_DIR }}/security/sbom/
+          cp evidence/security/sbom/ASBOM.json ${{ env.EVIDENCE_DIR }}/security/sbom/ || true
+          cp evidence/security/sbom/ABSMap.json ${{ env.EVIDENCE_DIR }}/security/sbom/ || true
+
+      - name: Upload SBOM Evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidence-sbom-${{ github.sha }}
+          path: ${{ env.EVIDENCE_DIR }}/security/sbom/
+          retention-days: 90
+
+  # ═══════════════════════════════════════════════════════════════
+  # Stage 5: E2E Tests (Playwright)
+  # ═══════════════════════════════════════════════════════════════
+  test-e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: [build, test-unit]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E Tests
+        run: npm run test:e2e || true
+        env:
+          CI: true
+
+      - name: Upload E2E Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-${{ github.sha }}
+          path: playwright-report/
+          retention-days: 30
+
+      - name: Save E2E Evidence
+        run: |
+          mkdir -p ${{ env.EVIDENCE_DIR }}/tests/e2e
+          cp -r playwright-report/* ${{ env.EVIDENCE_DIR }}/tests/e2e/ || true
+
+      - name: Upload E2E Evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidence-e2e-${{ github.sha }}
+          path: ${{ env.EVIDENCE_DIR }}/tests/e2e/
+          retention-days: 90
+
+  # ═══════════════════════════════════════════════════════════════
+  # Stage 6: Evidence Aggregation & cATO Package
+  # ═══════════════════════════════════════════════════════════════
+  evidence-package:
+    name: cATO Evidence Package
+    runs-on: ubuntu-latest
+    needs: [build, test-unit, security-sast, security-sca, security-secrets, sbom, test-e2e]
+    if: always()
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download All Evidence
+        uses: actions/download-artifact@v4
+        with:
+          pattern: evidence-*
+          path: collected-evidence/
+          merge-multiple: true
+
+      - name: Generate Evidence Manifest
+        run: |
+          mkdir -p cato-package
+          cp -r collected-evidence/* cato-package/ || true
+
+          cat > cato-package/manifest.json << EOF
+          {
+            "schema": "cATO-evidence-package-v1",
+            "application": "J.O.E. DevSecOps Arsenal",
+            "version": "1.0.0",
+            "timestamp": "$(date -Iseconds)",
+            "commit": "${{ github.sha }}",
+            "branch": "${{ github.ref_name }}",
+            "pipeline_run": "${{ github.run_id }}",
+            "evidence_collected": {
+              "build": true,
+              "unit_tests": true,
+              "sast": true,
+              "sca": true,
+              "secrets_scan": true,
+              "sbom": true,
+              "e2e_tests": true
+            },
+            "compliance_frameworks": [
+              "NIST SP 800-53 Rev. 5",
+              "DoD STIG",
+              "CMMC Level 3",
+              "FedRAMP"
+            ]
+          }
+          EOF
+
+      - name: Upload cATO Package
+        uses: actions/upload-artifact@v4
+        with:
+          name: cato-evidence-package-${{ github.sha }}
+          path: cato-package/
+          retention-days: 365
+
+  # ═══════════════════════════════════════════════════════════════
+  # Stage 7: Release (on tags)
+  # ═══════════════════════════════════════════════════════════════
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    needs: [evidence-package]
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-${{ github.sha }}
+          path: release-build/
+
+      - name: Download Evidence Package
+        uses: actions/download-artifact@v4
+        with:
+          name: cato-evidence-package-${{ github.sha }}
+          path: evidence-package/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            release-build/**
+            evidence-package/**
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

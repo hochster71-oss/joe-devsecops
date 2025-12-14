@@ -1,0 +1,233 @@
+{
+  "$schema": "https://darkwolfsolutions.com/schemas/absmap-1.0.json",
+  "version": "1.0.0",
+  "generatedAt": "2025-12-14T00:00:00Z",
+  "application": {
+    "name": "J.O.E. DevSecOps Arsenal",
+    "version": "1.0.0",
+    "type": "Electron Desktop Application"
+  },
+  "ipcSurface": {
+    "description": "Electron IPC channels exposed via preload script",
+    "channels": {
+      "windowControl": [
+        "get-app-info",
+        "minimize-window",
+        "maximize-window",
+        "close-window",
+        "update-tray-status"
+      ],
+      "database": [
+        "db-query",
+        "db-run",
+        "db-get",
+        "db-all"
+      ],
+      "authentication": [
+        "auth-login",
+        "auth-logout",
+        "auth-get-current-user",
+        "auth-change-password",
+        "auth-get-audit-log",
+        "auth-get-session-status"
+      ],
+      "twoFactorAuth": [
+        "auth-verify-2fa",
+        "auth-setup-2fa",
+        "auth-confirm-2fa-setup",
+        "auth-disable-2fa",
+        "auth-get-2fa-status"
+      ],
+      "securityScanning": [
+        "security-run-audit",
+        "security-auto-fix",
+        "security-generate-poam",
+        "security-semgrep-scan",
+        "security-docker-scan",
+        "security-cve-lookup",
+        "security-git-history-scan",
+        "security-eslint-scan",
+        "security-generate-sarif"
+      ],
+      "ollama": [
+        "ollama-chat",
+        "ollama-get-models",
+        "ollama-set-model",
+        "ollama-stream-start",
+        "ollama-stream-cancel"
+      ],
+      "export": [
+        "export-save-file",
+        "export-save-pdf",
+        "export-open-file",
+        "export-show-in-folder"
+      ],
+      "kubernetes": [
+        "k8s-get-contexts",
+        "k8s-connect",
+        "k8s-disconnect",
+        "k8s-run-audit",
+        "k8s-get-pods",
+        "k8s-scan-images",
+        "k8s-analyze-rbac",
+        "k8s-check-policies"
+      ],
+      "gitlab": [
+        "gitlab-connect",
+        "gitlab-disconnect",
+        "gitlab-list-projects",
+        "gitlab-get-project",
+        "gitlab-scan-project"
+      ],
+      "threatIntel": [
+        "threatintel-get-epss",
+        "threatintel-get-epss-batch",
+        "threatintel-get-kev-catalog",
+        "threatintel-check-kev",
+        "threatintel-get-kev-stats",
+        "threatintel-search-kev",
+        "threatintel-analyze-cve",
+        "threatintel-analyze-cves-batch",
+        "threatintel-clear-cache"
+      ],
+      "sbom": [
+        "sbom-generate",
+        "sbom-analyze",
+        "sbom-export",
+        "sbom-select-project"
+      ],
+      "secretScanning": [
+        "secrets-scan-directory",
+        "secrets-scan-content",
+        "secrets-select-directory"
+      ],
+      "vault": [
+        "vault-exists",
+        "vault-is-unlocked",
+        "vault-initialize",
+        "vault-unlock",
+        "vault-lock",
+        "vault-add-secret",
+        "vault-get-secret"
+      ]
+    },
+    "totalChannels": 70
+  },
+  "routes": {
+    "public": [
+      { "path": "/login", "view": "LoginView", "description": "User authentication" }
+    ],
+    "protected": [
+      { "path": "/dashboard", "view": "DashboardView", "description": "Main dashboard with metrics" },
+      { "path": "/findings", "view": "FindingsView", "description": "Security findings management" },
+      { "path": "/threat-intel", "view": "ThreatIntelView", "description": "CISA KEV & EPSS threat intelligence" },
+      { "path": "/iac-security", "view": "IaCSecurityView", "description": "Infrastructure as Code scanning" },
+      { "path": "/api-security", "view": "APISecurityView", "description": "API security testing" },
+      { "path": "/kubernetes", "view": "KubernetesView", "description": "Kubernetes cluster security" },
+      { "path": "/gitlab", "view": "GitLabView", "description": "GitLab integration & scanning" },
+      { "path": "/supply-chain", "view": "SupplyChainView", "description": "Supply chain security" },
+      { "path": "/compliance", "view": "ComplianceView", "description": "Compliance frameworks" },
+      { "path": "/space-compliance", "view": "SpaceComplianceView", "description": "Space systems compliance" },
+      { "path": "/pipeline", "view": "PipelineView", "description": "CI/CD pipeline security" },
+      { "path": "/ai-assistant", "view": "AiAssistantView", "description": "Ollama AI assistant" },
+      { "path": "/mission-control", "view": "MissionControlView", "description": "Security mission control" },
+      { "path": "/attack-surface", "view": "AttackSurfaceView", "description": "Attack surface analysis" },
+      { "path": "/integrations", "view": "IntegrationsView", "description": "External integrations" },
+      { "path": "/analytics", "view": "AnalyticsView", "description": "Security analytics" },
+      { "path": "/reports", "view": "ReportsView", "description": "Report generation" },
+      { "path": "/settings", "view": "SettingsView", "description": "Application settings" }
+    ],
+    "adminOnly": [
+      { "path": "/admin", "view": "AdminView", "description": "Administrator controls", "requiresRole": "administrator" }
+    ]
+  },
+  "stores": {
+    "description": "Zustand state management stores",
+    "stores": [
+      { "name": "authStore", "file": "src/renderer/store/authStore.ts", "purpose": "Authentication state & user session" },
+      { "name": "dashboardStore", "file": "src/renderer/store/dashboardStore.ts", "purpose": "Dashboard metrics & widgets" },
+      { "name": "apiSecurityStore", "file": "src/renderer/store/apiSecurityStore.ts", "purpose": "API security scan results" },
+      { "name": "iacStore", "file": "src/renderer/store/iacStore.ts", "purpose": "IaC scan results" },
+      { "name": "notificationStore", "file": "src/renderer/store/notificationStore.ts", "purpose": "Toast notifications" },
+      { "name": "gitlabStore", "file": "src/renderer/store/gitlabStore.ts", "purpose": "GitLab connection state" },
+      { "name": "threatIntelStore", "file": "src/renderer/store/threatIntelStore.ts", "purpose": "Threat intelligence data" },
+      { "name": "kubernetesStore", "file": "src/renderer/store/kubernetesStore.ts", "purpose": "Kubernetes cluster state" },
+      { "name": "analyticsStore", "file": "src/renderer/store/analyticsStore.ts", "purpose": "Analytics & metrics" }
+    ]
+  },
+  "mainProcessServices": {
+    "description": "Backend services in electron/ directory",
+    "services": [
+      { "name": "securityScanner", "file": "electron/security-scanner.ts", "purpose": "SAST/security scanning" },
+      { "name": "kubernetesScanner", "file": "electron/kubernetes-scanner.ts", "purpose": "K8s security auditing" },
+      { "name": "gitlabScanner", "file": "electron/gitlab-scanner.ts", "purpose": "GitLab project scanning" },
+      { "name": "threatIntelService", "file": "electron/threat-intel.ts", "purpose": "CISA KEV & EPSS integration" },
+      { "name": "sbomService", "file": "electron/sbom-service.ts", "purpose": "SBOM generation & analysis" },
+      { "name": "secretScanner", "file": "electron/secret-scanner.ts", "purpose": "Secret detection" },
+      { "name": "secureVault", "file": "electron/secure-vault.ts", "purpose": "Encrypted secret storage" },
+      { "name": "iacScanner", "file": "electron/iac-scanner.ts", "purpose": "IaC security scanning" },
+      { "name": "apiSecurityScanner", "file": "electron/api-security-scanner.ts", "purpose": "API security testing" },
+      { "name": "spaceComplianceService", "file": "electron/space-compliance-service.ts", "purpose": "Space systems compliance" },
+      { "name": "notificationService", "file": "electron/notification-service.ts", "purpose": "System notifications" },
+      { "name": "analyticsService", "file": "electron/analytics-service.ts", "purpose": "Analytics & telemetry" },
+      { "name": "siemConnector", "file": "electron/integrations/siem-connector.ts", "purpose": "SIEM integration" },
+      { "name": "ticketingService", "file": "electron/integrations/ticketing.ts", "purpose": "Ticketing system integration" },
+      { "name": "ollamaService", "file": "src/services/ollamaService.ts", "purpose": "Local LLM integration" }
+    ]
+  },
+  "uiComponents": {
+    "layout": [
+      "Shell.tsx",
+      "Header.tsx",
+      "Sidebar.tsx",
+      "StatusBar.tsx"
+    ],
+    "charts": [
+      "ComplianceRing.tsx",
+      "MitreHeatmap.tsx",
+      "RiskGauge.tsx",
+      "SeverityChart.tsx",
+      "ThreatTimeline.tsx"
+    ],
+    "widgets": [
+      "MetricCard.tsx",
+      "RecentFindings.tsx"
+    ],
+    "aiTouchpoint": [
+      "AITouchpointProvider.tsx",
+      "AIInfoPanel.tsx",
+      "AITooltip.tsx",
+      "TouchpointWrapper.tsx",
+      "SourceCitationBadge.tsx"
+    ],
+    "common": [
+      "Modal.tsx",
+      "MermaidDiagram.tsx"
+    ]
+  },
+  "testCoverage": {
+    "dataTestIdCount": 0,
+    "status": "CRITICAL_GAP",
+    "recommendation": "Add data-testid attributes to all interactive elements for E2E testing"
+  },
+  "securitySurfaces": {
+    "authentication": {
+      "loginForm": "LoginView.tsx",
+      "sessionManagement": "authStore.ts + main.ts",
+      "passwordChange": "PasswordChangeModal.tsx"
+    },
+    "ipcBridge": {
+      "preloadScript": "electron/preload.ts",
+      "contextIsolation": true,
+      "nodeIntegration": false
+    },
+    "externalConnections": [
+      "GitLab API (user-configured)",
+      "Kubernetes API (user-configured kubeconfig)",
+      "Ollama API (local LLM)",
+      "CISA KEV API",
+      "FIRST EPSS API"
+    ]
+  },
+  "gitCommit": "8419d1d51edcdab2b5ced76700c80f06c5846d0c"
+}

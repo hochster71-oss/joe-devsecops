@@ -26,7 +26,10 @@
     "test:e2e:ui": "playwright test --ui",
     "security:audit": "npm audit",
     "security:sast": "npx @anthropic-ai/semgrep --config auto src electron",
+    "security:testid": "npx ts-node scripts/check-testid-coverage.ts",
+    "security:sbom": "npx @cyclonedx/cyclonedx-npm --output-format json --output-file evidence/security/sbom/cyclonedx-sbom.json",
     "verify": "npm run typecheck && npm run lint && npm run test && npm run security:audit",
+    "verify:full": "npm run verify && npm run security:testid",
     "prepare": "husky"
   },
   "dependencies": {

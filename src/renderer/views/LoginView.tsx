@@ -524,6 +524,7 @@ export default function LoginView() {
                     className="w-full bg-dws-dark/50 border border-dws-border rounded-xl py-3 pl-12 pr-4 text-white placeholder-gray-600 focus:outline-none focus:border-joe-blue/50 focus:ring-1 focus:ring-joe-blue/50 transition-all"
                     placeholder="Enter username"
                     autoComplete="username"
+                    data-testid="login-username-input"
                     required
                   />
                 </div>
@@ -544,11 +545,13 @@ export default function LoginView() {
                     className="w-full bg-dws-dark/50 border border-dws-border rounded-xl py-3 pl-12 pr-12 text-white placeholder-gray-600 focus:outline-none focus:border-joe-blue/50 focus:ring-1 focus:ring-joe-blue/50 transition-all"
                     placeholder="Enter password"
                     autoComplete="current-password"
+                    data-testid="login-password-input"
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
+                    data-testid="toggle-password-visibility"
                     className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -563,6 +566,7 @@ export default function LoginView() {
                     type="checkbox"
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
+                    data-testid="remember-me-checkbox"
                     className="w-4 h-4 rounded border-dws-border bg-dws-dark text-joe-blue focus:ring-joe-blue focus:ring-offset-0"
                   />
                   <span className="text-sm text-gray-500 group-hover:text-gray-400 transition-colors">Remember me</span>
@@ -573,6 +577,7 @@ export default function LoginView() {
               <button
                 type="submit"
                 disabled={isLoading || !username || !password}
+                data-testid="login-submit-button"
                 className="w-full bg-gradient-to-r from-joe-blue to-joe-blue-light hover:from-joe-blue-light hover:to-joe-blue text-white font-semibold py-3.5 rounded-xl flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-lg shadow-joe-blue/20 hover:shadow-joe-blue/30"
               >
                 {isLoading ? (

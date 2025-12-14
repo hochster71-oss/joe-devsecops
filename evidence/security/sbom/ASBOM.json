@@ -1,0 +1,121 @@
+{
+  "$schema": "https://cyclonedx.org/schema/bom-1.5.schema.json",
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "serialNumber": "urn:uuid:joe-devsecops-asbom",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2025-12-14T00:00:00Z",
+    "tools": [
+      {
+        "vendor": "Dark Wolf Solutions",
+        "name": "J.O.E. DevSecOps Arsenal",
+        "version": "1.0.0"
+      }
+    ],
+    "authors": [
+      {
+        "name": "Michael Hoch",
+        "email": "michael@darkwolfsolutions.com"
+      }
+    ],
+    "component": {
+      "type": "application",
+      "bom-ref": "joe-devsecops",
+      "name": "J.O.E. DevSecOps Arsenal",
+      "version": "1.0.0",
+      "description": "Joint-Ops-Engine: AI-Driven DevSecOps Dashboard by Dark Wolf Solutions",
+      "licenses": [{ "license": { "id": "MIT" } }]
+    }
+  },
+  "stack": {
+    "frontend": {
+      "framework": "React",
+      "version": "18.2.0",
+      "language": "TypeScript",
+      "stateManagement": "Zustand 4.4.7",
+      "routing": "react-router-dom 6.21.0",
+      "styling": "TailwindCSS 3.3.6",
+      "animation": "framer-motion 10.16.16",
+      "charts": ["recharts 2.10.3", "d3 7.8.5"],
+      "icons": "lucide-react 0.294.0"
+    },
+    "backend": {
+      "runtime": "Electron 35.7.5",
+      "nodeVersion": "20.x",
+      "database": "better-sqlite3 11.6.0",
+      "encryption": ["bcryptjs 2.4.3", "jsonwebtoken 9.0.2"],
+      "2fa": ["otplib 12.0.1", "qrcode 1.5.4"],
+      "storage": "electron-store 11.0.2"
+    },
+    "build": {
+      "bundler": "Vite 6.4.1",
+      "mainProcess": "esbuild (via forge hook)",
+      "packager": "electron-forge 7.10.2",
+      "typeChecker": "TypeScript 5.3.2",
+      "linter": "ESLint 8.55.0"
+    },
+    "testing": {
+      "unit": "Vitest 4.0.15",
+      "e2e": "Playwright 1.57.0",
+      "coverage": "@vitest/coverage-v8 4.0.15"
+    },
+    "ci": {
+      "platform": "GitHub Actions",
+      "hooks": "Husky 9.1.7",
+      "staged": "lint-staged 16.2.7"
+    }
+  },
+  "entryPoints": {
+    "main": {
+      "file": "electron/main.ts",
+      "output": ".vite/build/main.js",
+      "description": "Electron main process - handles IPC, security, scanning"
+    },
+    "preload": {
+      "file": "electron/preload.ts",
+      "output": ".vite/build/preload.js",
+      "description": "Preload script - exposes secure APIs to renderer"
+    },
+    "renderer": {
+      "file": "src/renderer/main.tsx",
+      "output": ".vite/renderer/main_window/",
+      "description": "React application entry point"
+    }
+  },
+  "buildCommands": {
+    "dev": "npm start",
+    "package": "npm run package",
+    "make": "npm run make",
+    "typecheck": "npm run typecheck",
+    "lint": "npm run lint",
+    "test": "npm run test",
+    "testE2E": "npm run test:e2e"
+  },
+  "securityFeatures": {
+    "authentication": {
+      "method": "bcrypt password hashing",
+      "sessionTimeout": "15 minutes (DoD STIG compliant)",
+      "maxLoginAttempts": 5,
+      "lockoutDuration": "30 minutes",
+      "passwordExpiration": "30 days",
+      "minPasswordLength": 15
+    },
+    "twoFactorAuth": {
+      "method": "TOTP (otplib)",
+      "qrGeneration": "qrcode library"
+    },
+    "encryption": {
+      "tokens": "JWT with crypto",
+      "secrets": "AES-256 via secure-vault"
+    },
+    "compliance": [
+      "NIST SP 800-53 Rev. 5",
+      "DoD STIG",
+      "CMMC Level 3",
+      "FedRAMP",
+      "Space Systems (DO-326A, NASA-STD-8739.8)"
+    ]
+  },
+  "gitCommit": "8419d1d51edcdab2b5ced76700c80f06c5846d0c"
+}
