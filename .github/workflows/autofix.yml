@@ -1,0 +1,70 @@
+# J.O.E. DevSecOps Arsenal - AutoFix Workflow
+# AI-powered auto-remediation when CI fails
+# Agent cannot merge - must prove correctness through same gates
+
+name: autofix
+
+on:
+  workflow_run:
+    workflows: ["ci"]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  attempt_fix:
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    name: attempt-auto-remediation
+    runs-on: self-hosted
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout failing commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download CI artifacts (Playwright traces, logs)
+        uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ github.event.workflow_run.id }}
+        continue-on-error: true
+
+      - name: Setup Python for AutoFix agent
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install AutoFix dependencies
+        run: |
+          pip install requests pyyaml
+
+      - name: Run AutoFix agent (Ollama-backed)
+        env:
+          OLLAMA_HOST: http://127.0.0.1:11434
+          OLLAMA_MODEL: qwen2.5-coder:latest
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          python3 scripts/autofix/run_autofix.py
+
+      - name: Verify fix passes all gates
+        if: success()
+        run: |
+          npm run lint
+          npm run typecheck
+          npm test --if-present
+          npm run qa:testid-coverage
+          npm audit

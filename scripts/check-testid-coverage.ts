@@ -202,11 +202,18 @@ function saveEvidenceReport(summary: CoverageSummary, evidencePath: string): voi
 }
 
 // Main execution
+const args = process.argv.slice(2);
+const strictMode = args.includes('--strict');
+const threshold = strictMode ? 100 : 80;
+
 const projectRoot = path.resolve(__dirname, '..');
 const srcDir = path.join(projectRoot, 'src');
 const evidenceDir = path.join(projectRoot, 'evidence', 'tests', 'e2e');
 
 console.log('🔍 Scanning for data-testid coverage...\n');
+if (strictMode) {
+  console.log('⚠️  STRICT MODE: Requiring 100% coverage\n');
+}
 
 const summary = checkCoverage(srcDir);
 const report = generateReport(summary);
@@ -215,8 +222,10 @@ console.log(report);
 saveEvidenceReport(summary, evidenceDir);
 
 // Exit with error code if coverage is below threshold
-if (summary.coverage < 80) {
+if (summary.coverage < threshold) {
+  console.log(`\n❌ Coverage ${summary.coverage}% is below required threshold of ${threshold}%`);
   process.exit(1);
 }
 
+console.log(`\n✅ Coverage ${summary.coverage}% meets threshold of ${threshold}%`);
 process.exit(0);
