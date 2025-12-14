@@ -74,7 +74,8 @@
       "Bash(npx vite build:*)",
       "Bash(npx esbuild:*)",
       "Bash(npx electron-forge package)",
-      "Bash(git commit -m \"$(cat <<''EOF''\nfix: Achieve 100% TypeScript and ESLint compliance with production build\n\n- Fix all 135+ ESLint errors across 67 files\n- Resolve TypeScript type issues for strict mode compliance\n- Add esbuild-based main process build via forge packageAfterCopy hook\n- Simplify package.json scripts (remove redundant build:main chaining)\n- Update vite.main.config.ts with documentation\n- Fix unused variable warnings with underscore prefixing\n- Add eslint-disable comments for necessary any types\n- Ensure production package builds successfully\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n)\")"
+      "Bash(git commit -m \"$(cat <<''EOF''\nfix: Achieve 100% TypeScript and ESLint compliance with production build\n\n- Fix all 135+ ESLint errors across 67 files\n- Resolve TypeScript type issues for strict mode compliance\n- Add esbuild-based main process build via forge packageAfterCopy hook\n- Simplify package.json scripts (remove redundant build:main chaining)\n- Update vite.main.config.ts with documentation\n- Fix unused variable warnings with underscore prefixing\n- Add eslint-disable comments for necessary any types\n- Ensure production package builds successfully\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(npx husky init)"
     ]
   }
 }
