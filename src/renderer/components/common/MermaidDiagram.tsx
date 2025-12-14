@@ -48,7 +48,7 @@ export default function MermaidDiagram({ chart, id, className = '' }: MermaidDia
 
   useEffect(() => {
     const renderDiagram = async () => {
-      if (!containerRef.current) return;
+      if (!containerRef.current) {return;}
 
       try {
         const uniqueId = id || `mermaid-${Math.random().toString(36).substr(2, 9)}`;

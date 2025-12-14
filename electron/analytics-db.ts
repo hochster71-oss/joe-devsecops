@@ -16,6 +16,7 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import { app } from 'electron';
 import crypto from 'crypto';
+import fs from 'fs';
 
 // =============================================================================
 // DATABASE TYPES
@@ -102,7 +103,7 @@ class AnalyticsDatabase {
   // ===========================================================================
 
   initialize(): void {
-    if (this.db) return;
+    if (this.db) {return;}
 
     console.log('[J.O.E. Analytics DB] Initializing at:', this.dbPath);
 
@@ -117,7 +118,7 @@ class AnalyticsDatabase {
   }
 
   private createTables(): void {
-    if (!this.db) return;
+    if (!this.db) {return;}
 
     // User interactions tracking
     this.db.exec(`
@@ -208,7 +209,7 @@ class AnalyticsDatabase {
   }
 
   private createIndexes(): void {
-    if (!this.db) return;
+    if (!this.db) {return;}
 
     // Interaction indexes
     this.db.exec(`CREATE INDEX IF NOT EXISTS idx_interactions_session ON interactions(session_id)`);
@@ -232,7 +233,7 @@ class AnalyticsDatabase {
 
   startSession(userId?: string): string {
     this.initialize();
-    if (!this.db) throw new Error('Database not initialized');
+    if (!this.db) {throw new Error('Database not initialized');}
 
     const sessionId = crypto.randomUUID();
     const now = Date.now();
@@ -250,10 +251,10 @@ class AnalyticsDatabase {
   }
 
   endSession(sessionId?: string): void {
-    if (!this.db) return;
+    if (!this.db) {return;}
 
     const id = sessionId || this.currentSessionId;
-    if (!id) return;
+    if (!id) {return;}
 
     const stmt = this.db.prepare(`
       UPDATE sessions SET end_time = ? WHERE id = ?
@@ -280,7 +281,7 @@ class AnalyticsDatabase {
 
   trackInteraction(interaction: Omit<InteractionRecord, 'id' | 'sessionId'>): string {
     this.initialize();
-    if (!this.db) throw new Error('Database not initialized');
+    if (!this.db) {throw new Error('Database not initialized');}
 
     const id = crypto.randomUUID();
     const sessionId = this.getCurrentSessionId();
@@ -318,7 +319,7 @@ class AnalyticsDatabase {
 
   getRecentInteractions(limit = 100, userId?: string): InteractionRecord[] {
     this.initialize();
-    if (!this.db) return [];
+    if (!this.db) {return [];}
 
     let query = `SELECT * FROM interactions`;
     const params: (string | number)[] = [];
@@ -332,7 +333,7 @@ class AnalyticsDatabase {
     params.push(limit);
 
     const stmt = this.db.prepare(query);
-    const rows = stmt.all(...params) as any[];
+    const rows = stmt.all(...params) as Record<string, unknown>[];
 
     return rows.map(row => ({
       id: row.id,
@@ -353,7 +354,7 @@ class AnalyticsDatabase {
 
   trackAIQuery(query: Omit<AIQueryRecord, 'id' | 'timestamp' | 'promptHash'>): string {
     this.initialize();
-    if (!this.db) throw new Error('Database not initialized');
+    if (!this.db) {throw new Error('Database not initialized');}
 
     const id = crypto.randomUUID();
     const promptHash = this.hashPrompt(query.prompt);
@@ -391,7 +392,7 @@ class AnalyticsDatabase {
 
   rateAIQuery(queryId: string, rating: number): void {
     this.initialize();
-    if (!this.db) return;
+    if (!this.db) {return;}
 
     const stmt = this.db.prepare(`
       UPDATE ai_queries SET user_rating = ? WHERE id = ?
@@ -403,7 +404,7 @@ class AnalyticsDatabase {
 
   markQueryExpanded(queryId: string): void {
     this.initialize();
-    if (!this.db) return;
+    if (!this.db) {return;}
 
     const stmt = this.db.prepare(`
       UPDATE ai_queries SET was_expanded = 1 WHERE id = ?
@@ -413,7 +414,7 @@ class AnalyticsDatabase {
 
   markQueryLedToAction(queryId: string): void {
     this.initialize();
-    if (!this.db) return;
+    if (!this.db) {return;}
 
     const stmt = this.db.prepare(`
       UPDATE ai_queries SET led_to_action = 1 WHERE id = ?
@@ -431,7 +432,7 @@ class AnalyticsDatabase {
 
   getCachedResponse(prompt: string): string | null {
     this.initialize();
-    if (!this.db) return null;
+    if (!this.db) {return null;}
 
     const promptHash = this.hashPrompt(prompt);
     const stmt = this.db.prepare(`
@@ -453,7 +454,7 @@ class AnalyticsDatabase {
 
   cacheResponse(prompt: string, response: string): void {
     this.initialize();
-    if (!this.db) return;
+    if (!this.db) {return;}
 
     const promptHash = this.hashPrompt(prompt);
     const now = Date.now();
@@ -471,23 +472,23 @@ class AnalyticsDatabase {
 
   getOrCreateUserProfile(userId: string): UserProfile {
     this.initialize();
-    if (!this.db) throw new Error('Database not initialized');
+    if (!this.db) {throw new Error('Database not initialized');}
 
     const selectStmt = this.db.prepare(`SELECT * FROM user_profiles WHERE user_id = ?`);
-    const row = selectStmt.get(userId) as any;
+    const row = selectStmt.get(userId) as Record<string, unknown> | undefined;
 
     if (row) {
       return {
-        userId: row.user_id,
-        expertiseLevel: row.expertise_level,
-        preferredFrameworks: row.preferred_frameworks,
-        commonQueries: row.common_queries,
-        interactionHeatmap: row.interaction_heatmap,
-        totalInteractions: row.total_interactions,
-        avgSessionDuration: row.avg_session_duration,
-        lastActive: row.last_active,
-        createdAt: row.created_at,
-        updatedAt: row.updated_at
+        userId: row.user_id as string,
+        expertiseLevel: row.expertise_level as UserProfile['expertiseLevel'],
+        preferredFrameworks: row.preferred_frameworks as string,
+        commonQueries: row.common_queries as string,
+        interactionHeatmap: row.interaction_heatmap as string,
+        totalInteractions: row.total_interactions as number,
+        avgSessionDuration: row.avg_session_duration as number,
+        lastActive: row.last_active as number,
+        createdAt: row.created_at as number,
+        updatedAt: row.updated_at as number
       };
     }
 
@@ -515,7 +516,7 @@ class AnalyticsDatabase {
 
   updateUserProfile(userId: string, updates: Partial<UserProfile>): void {
     this.initialize();
-    if (!this.db) return;
+    if (!this.db) {return;}
 
     const fields: string[] = [];
     const values: (string | number)[] = [];
@@ -548,7 +549,7 @@ class AnalyticsDatabase {
   }
 
   private updateUserInteractionCount(userId: string): void {
-    if (!this.db) return;
+    if (!this.db) {return;}
 
     const stmt = this.db.prepare(`
       UPDATE user_profiles
@@ -565,7 +566,7 @@ class AnalyticsDatabase {
 
   recordPattern(pattern: Omit<SecurityPattern, 'id' | 'detectedAt' | 'lastSeen'>): number {
     this.initialize();
-    if (!this.db) throw new Error('Database not initialized');
+    if (!this.db) {throw new Error('Database not initialized');}
 
     const now = Date.now();
 
@@ -604,7 +605,7 @@ class AnalyticsDatabase {
 
   getPatterns(severity?: string, limit = 50): SecurityPattern[] {
     this.initialize();
-    if (!this.db) return [];
+    if (!this.db) {return [];}
 
     let query = `SELECT * FROM security_patterns`;
     const params: (string | number)[] = [];
@@ -618,7 +619,7 @@ class AnalyticsDatabase {
     params.push(limit);
 
     const stmt = this.db.prepare(query);
-    const rows = stmt.all(...params) as any[];
+    const rows = stmt.all(...params) as Record<string, unknown>[];
 
     return rows.map(row => ({
       id: row.id,
@@ -748,14 +749,13 @@ class AnalyticsDatabase {
     const cacheSize = (this.db.prepare(`SELECT COUNT(*) as c FROM query_cache`).get() as { c: number }).c;
 
     // Get database file size
-    const fs = require('fs');
     let dbSize = '0 KB';
     try {
-      const stats = fs.statSync(this.dbPath);
-      const bytes = stats.size;
-      if (bytes < 1024) dbSize = `${bytes} B`;
-      else if (bytes < 1024 * 1024) dbSize = `${Math.round(bytes / 1024)} KB`;
-      else dbSize = `${Math.round(bytes / (1024 * 1024) * 10) / 10} MB`;
+      const statsResult = fs.statSync(this.dbPath);
+      const bytes = statsResult.size;
+      if (bytes < 1024) {dbSize = `${bytes} B`;}
+      else if (bytes < 1024 * 1024) {dbSize = `${Math.round(bytes / 1024)} KB`;}
+      else {dbSize = `${Math.round(bytes / (1024 * 1024) * 10) / 10} MB`;}
     } catch {
       // Ignore file stat errors
     }
@@ -782,7 +782,7 @@ class AnalyticsDatabase {
     usageCount: number;
   }> {
     this.initialize();
-    if (!this.db) return [];
+    if (!this.db) {return [];}
 
     let query = `
       SELECT prompt, response, AVG(user_rating) as avg_rating, COUNT(*) as usage_count
@@ -806,10 +806,10 @@ class AnalyticsDatabase {
     params.push(limit);
 
     const stmt = this.db.prepare(query);
-    const rows = stmt.all(...params) as any[];
+    const rows = stmt.all(...params) as Array<Record<string, unknown>>;
 
     return rows.map(row => ({
-      prompt: row.prompt,
+      prompt: row.prompt as string,
       response: row.response,
       avgRating: row.avg_rating,
       usageCount: row.usage_count
@@ -818,7 +818,7 @@ class AnalyticsDatabase {
 
   detectExpertiseLevel(userId: string): 'beginner' | 'intermediate' | 'expert' {
     this.initialize();
-    if (!this.db) return 'intermediate';
+    if (!this.db) {return 'intermediate';}
 
     const profile = this.getOrCreateUserProfile(userId);
 
@@ -835,7 +835,7 @@ class AnalyticsDatabase {
 
     // More deep-dives relative to hovers suggests expert
     const deepdiveRatio = depthData.total > 0 ? depthData.deepdives / depthData.total : 0;
-    const hoverRatio = depthData.total > 0 ? depthData.hovers / depthData.total : 0;
+    const _hoverRatio = depthData.total > 0 ? depthData.hovers / depthData.total : 0;
 
     // Check average session duration
     const sessionStmt = this.db.prepare(`
@@ -850,20 +850,20 @@ class AnalyticsDatabase {
     let score = 0;
 
     // Deep-dive usage indicates expertise
-    if (deepdiveRatio > 0.3) score += 2;
-    else if (deepdiveRatio > 0.1) score += 1;
+    if (deepdiveRatio > 0.3) {score += 2;}
+    else if (deepdiveRatio > 0.1) {score += 1;}
 
     // Longer sessions indicate thorough analysis
-    if (avgDuration > 30 * 60 * 1000) score += 2; // > 30 min
-    else if (avgDuration > 10 * 60 * 1000) score += 1; // > 10 min
+    if (avgDuration > 30 * 60 * 1000) {score += 2;} // > 30 min
+    else if (avgDuration > 10 * 60 * 1000) {score += 1;} // > 10 min
 
     // Total interactions indicate engagement
-    if (profile.totalInteractions > 500) score += 2;
-    else if (profile.totalInteractions > 100) score += 1;
+    if (profile.totalInteractions > 500) {score += 2;}
+    else if (profile.totalInteractions > 100) {score += 1;}
 
     // Determine level
-    if (score >= 4) return 'expert';
-    if (score >= 2) return 'intermediate';
+    if (score >= 4) {return 'expert';}
+    if (score >= 2) {return 'intermediate';}
     return 'beginner';
   }
 
@@ -873,7 +873,7 @@ class AnalyticsDatabase {
 
   pruneOldData(daysToKeep = 90): void {
     this.initialize();
-    if (!this.db) return;
+    if (!this.db) {return;}
 
     const cutoff = Date.now() - (daysToKeep * 24 * 60 * 60 * 1000);
 
@@ -890,7 +890,7 @@ class AnalyticsDatabase {
 
   vacuum(): void {
     this.initialize();
-    if (!this.db) return;
+    if (!this.db) {return;}
 
     this.db.exec('VACUUM');
     console.log('[J.O.E. Analytics DB] Database vacuumed');

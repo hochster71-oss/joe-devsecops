@@ -11,7 +11,7 @@
  * Architected by Michael Hoch, Chief Architect of Autonomous Cyber-Operations
  */
 
-import { execSync, spawn } from 'child_process';
+import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -232,7 +232,7 @@ class GitLabScanner {
    * List accessible projects
    */
   async listProjects(search?: string, limit: number = 50): Promise<GitLabProject[]> {
-    if (!this.config) throw new Error('Not connected to GitLab');
+    if (!this.config) {throw new Error('Not connected to GitLab');}
 
     try {
       let url = `${this.config.url}/api/v4/projects?membership=true&per_page=${limit}&order_by=last_activity_at`;
@@ -250,8 +250,8 @@ class GitLabScanner {
 
       const projects = await response.json();
 
-      return projects.map((p: any) => ({
-        id: p.id,
+      return projects.map((p: Record<string, unknown>) => ({
+        id: p.id as number,
         name: p.name,
         path: p.path,
         pathWithNamespace: p.path_with_namespace,
@@ -276,7 +276,7 @@ class GitLabScanner {
    * Get project details
    */
   async getProject(projectId: number): Promise<GitLabProject> {
-    if (!this.config) throw new Error('Not connected to GitLab');
+    if (!this.config) {throw new Error('Not connected to GitLab');}
 
     const response = await fetch(`${this.config.url}/api/v4/projects/${projectId}`, {
       headers: { 'PRIVATE-TOKEN': this.config.token }
@@ -311,7 +311,7 @@ class GitLabScanner {
    * Includes SAST, secret detection, pipeline analysis, and container scanning
    */
   async scanProject(projectId: number): Promise<GitLabScanResults> {
-    if (!this.config) throw new Error('Not connected to GitLab');
+    if (!this.config) {throw new Error('Not connected to GitLab');}
 
     console.log('[J.O.E. GitLab] Starting security scan for project:', projectId);
 
@@ -371,7 +371,7 @@ class GitLabScanner {
    * Clone repository for local scanning
    */
   private async cloneRepository(project: GitLabProject): Promise<string> {
-    if (!this.config) throw new Error('Not connected');
+    if (!this.config) {throw new Error('Not connected');}
 
     const repoPath = path.join(this.tempDir, `${project.id}-${Date.now()}`);
 
@@ -416,24 +416,30 @@ class GitLabScanner {
         { stdio: 'pipe', timeout: 300000, maxBuffer: 50 * 1024 * 1024 }
       );
 
-      const semgrepResults = JSON.parse(result.toString());
+      const semgrepResults = JSON.parse(result.toString()) as { results?: Array<Record<string, unknown>> };
 
-      for (const result of semgrepResults.results || []) {
+      for (const semgrepResult of semgrepResults.results || []) {
+        const checkId = semgrepResult.check_id as string;
+        const resultPath = semgrepResult.path as string;
+        const start = semgrepResult.start as { line: number };
+        const end = semgrepResult.end as { line: number };
+        const extra = semgrepResult.extra as Record<string, unknown> | undefined;
+
         findings.push({
           id: crypto.randomUUID(),
-          title: result.check_id.split('.').pop() || result.check_id,
-          severity: this.mapSemgrepSeverity(result.extra?.severity),
-          confidence: result.extra?.metadata?.confidence || 'medium',
-          category: result.extra?.metadata?.category || 'security',
-          file: result.path.replace(repoPath, '').replace(/^[\\\/]/, ''),
-          line: result.start.line,
-          endLine: result.end.line,
-          code: result.extra?.lines,
-          description: result.extra?.message || result.check_id,
-          remediation: result.extra?.metadata?.remediation || 'Review and fix the security issue.',
-          cwe: result.extra?.metadata?.cwe?.[0],
-          owasp: result.extra?.metadata?.owasp?.[0],
-          reference: result.extra?.metadata?.references?.[0]
+          title: checkId.split('.').pop() || checkId,
+          severity: this.mapSemgrepSeverity(extra?.severity as string | undefined),
+          confidence: ((extra?.metadata as Record<string, unknown> | undefined)?.confidence as SASTFinding['confidence'] | undefined) || 'medium',
+          category: ((extra?.metadata as Record<string, unknown> | undefined)?.category as string | undefined) || 'security',
+          file: resultPath.replace(repoPath, '').replace(/^[/\\]/, ''),
+          line: start.line,
+          endLine: end.line,
+          code: extra?.lines as string | undefined,
+          description: (extra?.message as string | undefined) || checkId,
+          remediation: ((extra?.metadata as Record<string, unknown> | undefined)?.remediation as string | undefined) || 'Review and fix the security issue.',
+          cwe: ((extra?.metadata as Record<string, unknown> | undefined)?.cwe as string[] | undefined)?.[0],
+          owasp: ((extra?.metadata as Record<string, unknown> | undefined)?.owasp as string[] | undefined)?.[0],
+          reference: ((extra?.metadata as Record<string, unknown> | undefined)?.references as string[] | undefined)?.[0]
         });
       }
     } catch (error) {
@@ -493,7 +499,7 @@ class GitLabScanner {
                       severity: patternDef.severity,
                       confidence: 'medium',
                       category: patternDef.category,
-                      file: fullPath.replace(repoPath, '').replace(/^[\\\/]/, ''),
+                      file: fullPath.replace(repoPath, '').replace(/^[/\\]/, ''),
                       line: idx + 1,
                       code: line.trim().substring(0, 200),
                       description: `Detected ${patternDef.title} pattern which may indicate a security vulnerability.`,
@@ -544,7 +550,7 @@ class GitLabScanner {
       { pattern: /AKIA[0-9A-Z]{16}/g, type: 'AWS Access Key ID', severity: 'critical' as const },
       { pattern: /(?<![A-Za-z0-9/+=])[A-Za-z0-9/+=]{40}(?![A-Za-z0-9/+=])/g, type: 'AWS Secret Access Key (potential)', severity: 'high' as const },
       { pattern: /sk-[a-zA-Z0-9]{48}/g, type: 'OpenAI API Key', severity: 'critical' as const },
-      { pattern: /xox[baprs]-[0-9a-zA-Z\-]{10,}/g, type: 'Slack Token', severity: 'high' as const },
+      { pattern: /xox[baprs]-[0-9a-zA-Z-]{10,}/g, type: 'Slack Token', severity: 'high' as const },
       { pattern: /-----BEGIN (RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----/g, type: 'Private Key', severity: 'critical' as const },
       { pattern: /(?:^|[^a-zA-Z0-9])(eyJ[a-zA-Z0-9_-]*\.eyJ[a-zA-Z0-9_-]*\.[a-zA-Z0-9_-]*)/g, type: 'JWT Token', severity: 'high' as const },
       { pattern: /(?:password|passwd|pwd)\s*[:=]\s*["']([^"']{8,})["']/gi, type: 'Hardcoded Password', severity: 'critical' as const }
@@ -565,8 +571,8 @@ class GitLabScanner {
             }
             scanDir(fullPath);
           } else if (entry.isFile()) {
-            if (skipFiles.includes(entry.name)) continue;
-            if (!scanExtensions.some(ext => entry.name.endsWith(ext)) && !entry.name.startsWith('.env')) continue;
+            if (skipFiles.includes(entry.name)) {continue;}
+            if (!scanExtensions.some(ext => entry.name.endsWith(ext)) && !entry.name.startsWith('.env')) {continue;}
 
             try {
               const content = fs.readFileSync(fullPath, 'utf-8');
@@ -585,7 +591,7 @@ class GitLabScanner {
                       findings.push({
                         id: crypto.randomUUID(),
                         type: patternDef.type,
-                        file: fullPath.replace(repoPath, '').replace(/^[\\\/]/, ''),
+                        file: fullPath.replace(repoPath, '').replace(/^[/\\]/, ''),
                         line: idx + 1,
                         secret: redacted,
                         severity: patternDef.severity,
@@ -664,7 +670,7 @@ class GitLabScanner {
 
     try {
       const ciContent = fs.readFileSync(ciFile, 'utf-8');
-      const ciLower = ciContent.toLowerCase();
+      const _ciLower = ciContent.toLowerCase();
 
       // Check for security stages/jobs
       hasSASTJob = /sast|semgrep|sonarqube|codeclimate|security[-_]scan/i.test(ciContent);
@@ -758,11 +764,11 @@ class GitLabScanner {
 
     // Calculate score
     let score = 0;
-    if (hasSASTJob) score += 25;
-    if (hasDependencyScan) score += 25;
-    if (hasContainerScan) score += 15;
-    if (hasSecretDetection) score += 20;
-    if (hasLicenseCompliance) score += 15;
+    if (hasSASTJob) {score += 25;}
+    if (hasDependencyScan) {score += 25;}
+    if (hasContainerScan) {score += 15;}
+    if (hasSecretDetection) {score += 20;}
+    if (hasLicenseCompliance) {score += 15;}
 
     // Deduct for issues
     score -= issues.filter(i => i.severity === 'critical').length * 20;
@@ -786,7 +792,7 @@ class GitLabScanner {
    * Scan container registry for vulnerabilities
    */
   private async scanContainerRegistry(projectId: number): Promise<ContainerImage[]> {
-    if (!this.config) return [];
+    if (!this.config) {return [];}
 
     console.log('[J.O.E. GitLab] Scanning container registry...');
 
@@ -812,7 +818,7 @@ class GitLabScanner {
           { headers: { 'PRIVATE-TOKEN': this.config.token } }
         );
 
-        if (!tagsResponse.ok) continue;
+        if (!tagsResponse.ok) {continue;}
 
         const tags = await tagsResponse.json();
 
@@ -864,8 +870,8 @@ class GitLabScanner {
         });
 
         const auditResults = JSON.parse(result.toString());
-        for (const [name, advisory] of Object.entries(auditResults.advisories || {})) {
-          const adv = advisory as any;
+        for (const [_name, advisory] of Object.entries(auditResults.advisories || {})) {
+          const adv = advisory as Record<string, unknown>;
           vulnerabilities.push({
             package: adv.module_name,
             version: adv.findings?.[0]?.version || 'unknown',

@@ -355,8 +355,8 @@ class SecretScanner {
     } = options;
 
     const scanFile = async (filePath: string) => {
-      const ext = path.extname(filePath).toLowerCase();
-      const fileName = path.basename(filePath);
+      const _ext = path.extname(filePath).toLowerCase();
+      const _fileName = path.basename(filePath);
 
       // Skip binary and irrelevant files
       if (SKIP_EXTENSIONS.some(e => filePath.toLowerCase().endsWith(e))) {
@@ -389,7 +389,7 @@ class SecretScanner {
 
           // Skip directories that start with $ (Windows system)
           if (entry.name.startsWith('$') || entry.name.startsWith('.')) {
-            if (entry.isDirectory()) continue;
+            if (entry.isDirectory()) {continue;}
           }
 
           if (entry.isDirectory()) {
@@ -400,9 +400,9 @@ class SecretScanner {
             await scanFile(fullPath);
           }
         }
-      } catch (error: any) {
+      } catch (error) {
         // Gracefully skip directories with permission errors
-        if (error.code === 'EPERM' || error.code === 'EACCES' || error.code === 'EBUSY') {
+        if ((error as NodeJS.ErrnoException).code === 'EPERM' || (error as NodeJS.ErrnoException).code === 'EACCES' || (error as NodeJS.ErrnoException).code === 'EBUSY') {
           skippedFiles++;
           return;
         }
@@ -472,11 +472,11 @@ class SecretScanner {
         let entropy: number | undefined;
         if (pattern.type === 'AWS_SECRET_KEY' || pattern.type === 'GENERIC_SECRET') {
           entropy = this.calculateEntropy(matchText);
-          if (entropy < 3.5) continue; // Skip low-entropy matches
+          if (entropy < 3.5) {continue;} // Skip low-entropy matches
         }
 
         // Skip if it looks like a placeholder
-        if (this.isLikelyPlaceholder(matchText)) continue;
+        if (this.isLikelyPlaceholder(matchText)) {continue;}
 
         findings.push({
           id: `SEC-${++this.findingCounter}`,
@@ -512,21 +512,21 @@ class SecretScanner {
     let match;
     while ((match = stringPattern.exec(content)) !== null) {
       const value = match[1] || match[2];
-      if (!value) continue;
+      if (!value) {continue;}
 
       const entropy = this.calculateEntropy(value);
       if (entropy >= 4.5 && !this.isLikelyPlaceholder(value)) {
         // Calculate line number
         let lineNum = 1;
         for (let i = 0; i < match.index; i++) {
-          if (content[i] === '\n') lineNum++;
+          if (content[i] === '\n') {lineNum++;}
         }
 
         // Skip if already found by pattern matching
         const alreadyFound = findings.some(f =>
           f.line === lineNum && f.match.includes(value.substring(0, 10))
         );
-        if (alreadyFound) continue;
+        if (alreadyFound) {continue;}
 
         findings.push({
           id: `SEC-${++this.findingCounter}`,

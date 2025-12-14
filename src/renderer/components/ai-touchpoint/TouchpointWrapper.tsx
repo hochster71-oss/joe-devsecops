@@ -107,7 +107,7 @@ export const TouchpointWrapper: React.FC<TouchpointWrapperProps> = ({
   enableHover = true,
   enableClick = true,
   enableKeyboard = true,
-  priority = 'medium',
+  priority: _priority = 'medium',
   hoverDelay = 300,
   className = '',
   onResponse,
@@ -159,7 +159,7 @@ export const TouchpointWrapper: React.FC<TouchpointWrapperProps> = ({
   // ==========================================================================
 
   const fetchTooltip = useCallback(async () => {
-    if (disabled || !state.settings.enabled) return;
+    if (disabled || !state.settings.enabled) {return;}
 
     try {
       const context = buildContext('tooltip');
@@ -175,7 +175,7 @@ export const TouchpointWrapper: React.FC<TouchpointWrapperProps> = ({
   }, [disabled, state.settings.enabled, buildContext, actions, onResponse, onError]);
 
   const fetchPanel = useCallback(async () => {
-    if (disabled || !state.settings.enabled) return;
+    if (disabled || !state.settings.enabled) {return;}
 
     try {
       const context = buildContext('panel');
@@ -194,8 +194,8 @@ export const TouchpointWrapper: React.FC<TouchpointWrapperProps> = ({
   // EVENT HANDLERS
   // ==========================================================================
 
-  const handleMouseEnter = useCallback((e: MouseEvent<HTMLDivElement>) => {
-    if (disabled || !enableHover) return;
+  const handleMouseEnter = useCallback((_e: MouseEvent<HTMLDivElement>) => {
+    if (disabled || !enableHover) {return;}
 
     isHoveringRef.current = true;
 
@@ -248,7 +248,7 @@ export const TouchpointWrapper: React.FC<TouchpointWrapperProps> = ({
   }, [actions]);
 
   const handleClick = useCallback((e: MouseEvent<HTMLDivElement>) => {
-    if (disabled || !enableClick) return;
+    if (disabled || !enableClick) {return;}
 
     e.stopPropagation();
 
@@ -269,7 +269,7 @@ export const TouchpointWrapper: React.FC<TouchpointWrapperProps> = ({
   }, [disabled, enableClick, elementId, fetchPanel, actions, sessionId, elementType, data]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent<HTMLDivElement>) => {
-    if (disabled || !enableKeyboard) return;
+    if (disabled || !enableKeyboard) {return;}
 
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
@@ -284,8 +284,8 @@ export const TouchpointWrapper: React.FC<TouchpointWrapperProps> = ({
     }
   }, [disabled, enableKeyboard, handleClick, actions]);
 
-  const handleFocus = useCallback((e: FocusEvent<HTMLDivElement>) => {
-    if (disabled || !enableHover) return;
+  const handleFocus = useCallback((_e: FocusEvent<HTMLDivElement>) => {
+    if (disabled || !enableHover) {return;}
 
     setShowTooltip(true);
     actions.showTooltip(elementId);

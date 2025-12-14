@@ -57,7 +57,24 @@
       "Bash(powershell -ExecutionPolicy Bypass -File:*)",
       "Bash(powershell -ExecutionPolicy Bypass -Command \"\n# Clear Windows icon cache\nWrite-Host ''Clearing Windows icon cache...''\n$iconCache = \"\"$env:LOCALAPPDATA\\Microsoft\\Windows\\Explorer\"\"\nStop-Process -Name explorer -Force -ErrorAction SilentlyContinue\nStart-Sleep -Seconds 2\nGet-ChildItem -Path $iconCache -Filter ''iconcache*'' | Remove-Item -Force -ErrorAction SilentlyContinue\nGet-ChildItem -Path $iconCache -Filter ''thumbcache*'' | Remove-Item -Force -ErrorAction SilentlyContinue\nStart-Process explorer\nWrite-Host ''Icon cache cleared. You may need to restart your computer for changes to take effect.''\n\")",
       "Bash(powershell:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nfeat: Add comprehensive enterprise DevSecOps capabilities\n\nEnhanced Security Scanning:\n- IaC Security Scanner (Terraform, CloudFormation, K8s, Docker, Ansible)\n- API Security Scanner with OWASP API Top 10 2023 compliance\n- Built-in security rules for all IaC platforms\n\nEnterprise Integrations:\n- Notification Service (Slack, Teams, Email, Desktop alerts)\n- SIEM Connector (Splunk, Elastic, Microsoft Sentinel, QRadar)\n- Ticketing Integration (Jira, ServiceNow, Azure Boards, GitHub, Linear)\n\nExtended Compliance Frameworks:\n- SOC 2 Trust Service Criteria\n- HIPAA Security Rule safeguards\n- FedRAMP control families\n- PCI DSS 4.0 requirements\n\nNew Views & Navigation:\n- IaCSecurityView for infrastructure code scanning\n- APISecurityView for API specification analysis\n- IntegrationsView for configuring notifications, SIEM, and ticketing\n- Updated sidebar with new navigation items\n\nTechnical Updates:\n- 34+ new IPC handlers in main.ts\n- Complete API exposure in preload.ts with TypeScript types\n- Zustand stores for IaC, API security, and notifications\n- Router updates for new views\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(npm run build:*)",
+      "Bash(if exist .vite rmdir /s /q .vite)",
+      "Bash(if exist node_modules.vite rmdir /s /q node_modules.vite)",
+      "Bash(if exist \"node_modules\\.vite\" rmdir /s /q \"node_modules\\.vite\")",
+      "Bash(timeout /t 20 /nobreak)",
+      "Bash(powershell -Command \"Start-Sleep -Seconds 25; Invoke-WebRequest -Uri ''http://localhost:5173'' -UseBasicParsing -TimeoutSec 5 | Select-Object -ExpandProperty Content | Select-Object -First 50\")",
+      "Bash(npm run typecheck:*)",
+      "Bash(npm run lint)",
+      "Bash(npm run lint:fix:*)",
+      "Bash(git checkout:*)",
+      "Bash(git stash:*)",
+      "Bash(timeout 30 npm start)",
+      "Bash(npx vite build:*)",
+      "Bash(npx esbuild:*)",
+      "Bash(npx electron-forge package)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nfix: Achieve 100% TypeScript and ESLint compliance with production build\n\n- Fix all 135+ ESLint errors across 67 files\n- Resolve TypeScript type issues for strict mode compliance\n- Add esbuild-based main process build via forge packageAfterCopy hook\n- Simplify package.json scripts (remove redundant build:main chaining)\n- Update vite.main.config.ts with documentation\n- Fix unused variable warnings with underscore prefixing\n- Add eslint-disable comments for necessary any types\n- Ensure production package builds successfully\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n)\")"
     ]
   }
 }

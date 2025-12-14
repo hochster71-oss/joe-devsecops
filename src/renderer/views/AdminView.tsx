@@ -7,9 +7,7 @@ import {
   User,
   Trash2,
   Edit,
-  Key,
-  Check,
-  X
+  Key
 } from 'lucide-react';
 
 interface UserAccount {
@@ -55,7 +53,7 @@ export default function AdminView() {
   });
 
   const handleAddUser = () => {
-    if (!newUser.username || !newUser.displayName || !newUser.password) return;
+    if (!newUser.username || !newUser.displayName || !newUser.password) {return;}
 
     const user: UserAccount = {
       id: Date.now().toString(),
@@ -73,7 +71,7 @@ export default function AdminView() {
   };
 
   const handleDeleteUser = (id: string) => {
-    if (users.length <= 1) return; // Keep at least one admin
+    if (users.length <= 1) {return;} // Keep at least one admin
     setUsers(users.filter(u => u.id !== id));
   };
 

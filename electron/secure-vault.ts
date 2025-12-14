@@ -337,7 +337,7 @@ class SecureVaultService {
     this.ensureUnlocked();
 
     const entry = this.vault!.entries.find(e => e.id === id);
-    if (!entry) return null;
+    if (!entry) {return null;}
 
     const decryptedValue = this.decrypt(
       entry.encryptedValue,
@@ -358,7 +358,7 @@ class SecureVaultService {
     this.ensureUnlocked();
 
     const entryIndex = this.vault!.entries.findIndex(e => e.id === id);
-    if (entryIndex === -1) return null;
+    if (entryIndex === -1) {return null;}
 
     const { ciphertext, iv, authTag } = this.encrypt(newValue, this.derivedKey!);
 
@@ -388,7 +388,7 @@ class SecureVaultService {
     this.ensureUnlocked();
 
     const entryIndex = this.vault!.entries.findIndex(e => e.id === id);
-    if (entryIndex === -1) return false;
+    if (entryIndex === -1) {return false;}
 
     const deletedEntry = this.vault!.entries[entryIndex];
     this.vault!.entries.splice(entryIndex, 1);
@@ -407,7 +407,7 @@ class SecureVaultService {
   listEntries(): Omit<VaultEntry, 'encryptedValue' | 'iv' | 'authTag'>[] {
     this.ensureUnlocked();
 
-    return this.vault!.entries.map(({ encryptedValue, iv, authTag, ...rest }) => rest);
+    return this.vault!.entries.map(({ encryptedValue: _encryptedValue, iv: _iv, authTag: _authTag, ...rest }) => rest);
   }
 
   /**
@@ -551,11 +551,11 @@ class SecureVaultService {
    */
   private validateMasterPassword(password: string): boolean {
     // DoD STIG requirements: 15+ chars, mixed case, numbers, symbols
-    if (password.length < 15) return false;
-    if (!/[a-z]/.test(password)) return false;
-    if (!/[A-Z]/.test(password)) return false;
-    if (!/[0-9]/.test(password)) return false;
-    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) return false;
+    if (password.length < 15) {return false;}
+    if (!/[a-z]/.test(password)) {return false;}
+    if (!/[A-Z]/.test(password)) {return false;}
+    if (!/[0-9]/.test(password)) {return false;}
+    if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)) {return false;}
     return true;
   }
 
@@ -563,7 +563,7 @@ class SecureVaultService {
    * Save vault to disk
    */
   private async saveVault(): Promise<void> {
-    if (!this.vault) throw new Error('No vault to save');
+    if (!this.vault) {throw new Error('No vault to save');}
 
     const vaultDir = path.dirname(this.vaultPath);
     if (!fs.existsSync(vaultDir)) {

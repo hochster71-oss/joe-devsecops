@@ -1,13 +1,11 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
-  Settings,
   Shield,
   Package,
   ClipboardCheck,
   Bot,
   Bell,
-  Palette,
   Save,
   Smartphone,
   ShieldCheck,
@@ -18,7 +16,7 @@ import {
 import { useAuthStore } from '../store/authStore';
 
 export default function SettingsView() {
-  const { setup2FA, confirm2FASetup, disable2FA, get2FAStatus, twoFactorEnabled, isLoading } = useAuthStore();
+  const { setup2FA, confirm2FASetup, disable2FA, get2FAStatus, twoFactorEnabled, isLoading: _isLoading } = useAuthStore();
 
   // 2FA state
   const [is2FAEnabled, setIs2FAEnabled] = useState(false);

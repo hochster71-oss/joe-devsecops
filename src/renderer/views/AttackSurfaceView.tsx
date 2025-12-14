@@ -6,14 +6,13 @@
  */
 
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import MermaidDiagram from '../components/common/MermaidDiagram';
 import {
   Shield,
   Globe,
   Server,
   Database,
-  Cloud,
   Container,
   Code,
   Key,
@@ -30,8 +29,7 @@ import {
   Eye,
   Network,
   Layers,
-  Target,
-  Zap
+  Target
 } from 'lucide-react';
 
 // ========================================
@@ -191,13 +189,13 @@ export default function AttackSurfaceView() {
       ];
 
       const exposed = mockVectors.filter(v => v.status === 'exposed').length;
-      const protected_ = mockVectors.filter(v => v.status === 'protected').length;
+      const protectedCount = mockVectors.filter(v => v.status === 'protected').length;
       const monitoring = mockVectors.filter(v => v.status === 'monitoring').length;
 
       setMetrics({
         totalVectors: mockVectors.length,
         exposedVectors: exposed,
-        protectedVectors: protected_,
+        protectedVectors: protectedCount,
         monitoringVectors: monitoring,
         riskScore: Math.round(100 - (exposed * 15) - (monitoring * 5)),
         trend: exposed > 2 ? 'degrading' : monitoring > 3 ? 'stable' : 'improving'

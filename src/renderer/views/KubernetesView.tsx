@@ -15,10 +15,8 @@ import {
   Container,
   Shield,
   ShieldCheck,
-  ShieldAlert,
   Server,
   Network,
-  Lock,
   Key,
   AlertTriangle,
   CheckCircle,
@@ -31,7 +29,6 @@ import {
   ChevronRight,
   Box,
   Users,
-  Eye,
   FileWarning,
   Brain,
   Sparkles,
@@ -64,7 +61,7 @@ export default function KubernetesView() {
     connect,
     disconnect,
     runFullAudit,
-    clearResults
+    clearResults: _clearResults
   } = useKubernetesStore();
 
   const [selectedContext, setSelectedContext] = useState<string>('');
@@ -91,7 +88,7 @@ export default function KubernetesView() {
   }, [availableContexts, selectedContext]);
 
   const handleConnect = async () => {
-    if (!selectedContext) return;
+    if (!selectedContext) {return;}
     const success = await connect({
       name: selectedContext,
       context: selectedContext
@@ -168,7 +165,7 @@ export default function KubernetesView() {
    * Reference: NSA/CISA Guide Section 4
    */
   const handleAnalyzeRBAC = async () => {
-    if (!scanResults) return;
+    if (!scanResults) {return;}
 
     setAiAnalysisTitle('AI RBAC Security Analysis');
     setAiAnalysisType('rbac');
@@ -199,7 +196,7 @@ export default function KubernetesView() {
    * Reference: NIST SP 800-190
    */
   const handleAnalyzePodSecurity = async () => {
-    if (!scanResults) return;
+    if (!scanResults) {return;}
 
     setAiAnalysisTitle('AI Pod Security Analysis');
     setAiAnalysisType('pss');
@@ -229,7 +226,7 @@ export default function KubernetesView() {
    * Reference: NIST SP 800-190 Section 4.3
    */
   const handleAnalyzeImages = async () => {
-    if (!scanResults) return;
+    if (!scanResults) {return;}
 
     setAiAnalysisTitle('AI Container Vulnerability Analysis');
     setAiAnalysisType('image');
@@ -259,7 +256,7 @@ export default function KubernetesView() {
    * Reference: NSA/CISA Guide Section 5
    */
   const handleAnalyzeNetworkPolicies = async () => {
-    if (!scanResults) return;
+    if (!scanResults) {return;}
 
     setAiAnalysisTitle('AI Network Security Analysis');
     setAiAnalysisType('network');
@@ -285,7 +282,7 @@ export default function KubernetesView() {
    * AI-driven attack path analysis using MITRE ATT&CK
    */
   const handleAnalyzeAttackPaths = async () => {
-    if (!scanResults) return;
+    if (!scanResults) {return;}
 
     setAiAnalysisTitle('AI Attack Path Analysis (MITRE ATT&CK)');
     setAiAnalysisType('attack');
@@ -320,7 +317,7 @@ export default function KubernetesView() {
    * Generate comprehensive AI security report
    */
   const handleGenerateSecurityReport = async () => {
-    if (!scanResults) return;
+    if (!scanResults) {return;}
 
     setAiAnalysisTitle('AI Executive Security Assessment');
     setAiAnalysisType('report');
@@ -366,9 +363,9 @@ export default function KubernetesView() {
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 80) return 'text-dws-green';
-    if (score >= 60) return 'text-alert-warning';
-    if (score >= 40) return 'text-alert-high';
+    if (score >= 80) {return 'text-dws-green';}
+    if (score >= 60) {return 'text-alert-warning';}
+    if (score >= 40) {return 'text-alert-high';}
     return 'text-alert-critical';
   };
 

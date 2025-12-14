@@ -140,8 +140,8 @@ export default function ThreatTimeline() {
   const [filter, setFilter] = useState<'all' | 'open' | 'critical'>('all');
 
   const filteredEvents = threatEvents.filter(event => {
-    if (filter === 'open') return event.status !== 'resolved';
-    if (filter === 'critical') return event.type === 'critical' || event.type === 'high';
+    if (filter === 'open') {return event.status !== 'resolved';}
+    if (filter === 'critical') {return event.type === 'critical' || event.type === 'high';}
     return true;
   });
 
@@ -149,7 +149,7 @@ export default function ThreatTimeline() {
     const diff = Date.now() - date.getTime();
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(diff / 3600000);
-    if (hours > 0) return `${hours}h ago`;
+    if (hours > 0) {return `${hours}h ago`;}
     return `${minutes}m ago`;
   };
 

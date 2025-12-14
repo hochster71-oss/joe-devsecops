@@ -5,7 +5,7 @@
  * Comprehensive IaC security scanning and compliance checking
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Cloud,
@@ -19,7 +19,6 @@ import {
   Clock,
   Folder,
   FileCode,
-  Code,
   Server,
   Container,
   Database,
@@ -27,17 +26,14 @@ import {
   AlertCircle,
   Search,
   Filter,
-  BarChart3,
   Zap,
   Box,
   Layers,
   Terminal,
   FileJson,
   Settings,
-  Download,
   Play,
   GitBranch,
-  Eye,
   Copy,
   ExternalLink
 } from 'lucide-react';
@@ -52,24 +48,32 @@ type Severity = 'critical' | 'high' | 'medium' | 'low' | 'info';
 
 interface IaCFinding {
   id: string;
-  ruleId: string;
+  checkId: string;
+  ruleId?: string;
   title: string;
   description: string;
   severity: Severity;
-  category: string;
+  iacType: IaCType;
+  category?: string;
   resource?: string;
+  resourceType?: string;
   file: string;
-  line: number;
+  line?: number;
+  endLine?: number;
   remediation: string;
-  references?: string[];
-  cwe?: string;
+  documentation?: string;
+  framework?: string;
+  controlId?: string;
   compliance?: string[];
+  cwe?: string;
+  references?: string[];
 }
 
 interface IaCScanResult {
-  scanId: string;
-  timestamp: string;
-  duration: number;
+  scanId?: string;
+  scanTime?: string;
+  timestamp?: string;
+  duration?: number;
   iacType: IaCType;
   filesScanned: number;
   findings: IaCFinding[];
@@ -81,8 +85,11 @@ interface IaCScanResult {
     info: number;
     total: number;
   };
-  passedChecks: number;
-  failedChecks: number;
+  passed?: number;
+  failed?: number;
+  skipped?: number;
+  passedChecks?: number;
+  failedChecks?: number;
 }
 
 // ========================================
@@ -92,18 +99,22 @@ interface IaCScanResult {
 export default function IaCSecurityView() {
   const {
     scanResults,
-    currentScan,
     isScanning,
     error,
-    selectedSeverities,
-    selectedTypes,
+    severityFilter,
+    iacTypeFilter,
     searchQuery,
     setSeverityFilter,
-    setTypeFilter,
+    setIaCTypeFilter,
     setSearchQuery,
     getFilteredFindings,
     clearResults
   } = useIaCStore();
+
+  // Alias for UI compatibility - cast to local interface for extended properties
+  const currentScan = scanResults as IaCScanResult | null;
+  const selectedSeverities = severityFilter;
+  const selectedTypes = iacTypeFilter;
 
   const [scanPath, setScanPath] = useState<string>('');
   const [selectedFinding, setSelectedFinding] = useState<IaCFinding | null>(null);
@@ -122,7 +133,7 @@ export default function IaCSecurityView() {
     }
   };
 
-  const getIaCLabel = (type: IaCType) => {
+  const _getIaCLabel = (type: IaCType) => {
     switch (type) {
       case 'terraform': return 'Terraform';
       case 'cloudformation': return 'CloudFormation';
@@ -173,7 +184,7 @@ export default function IaCSecurityView() {
   };
 
   const handleScan = async () => {
-    if (!scanPath) return;
+    if (!scanPath) {return;}
 
     try {
       await window.electronAPI?.iac?.scanDirectory(scanPath);
@@ -183,7 +194,7 @@ export default function IaCSecurityView() {
     }
   };
 
-  const handleScanFile = async (filePath: string) => {
+  const _handleScanFile = async (filePath: string) => {
     try {
       await window.electronAPI?.iac?.scanFile(filePath);
       setActiveTab('results');
@@ -200,7 +211,7 @@ export default function IaCSecurityView() {
   const filteredFindings = getFilteredFindings();
 
   // Calculate summary from current scan
-  const currentSummary = currentScan?.summary || {
+  const currentSummary = scanResults?.summary || {
     critical: 0,
     high: 0,
     medium: 0,
@@ -228,7 +239,7 @@ export default function IaCSecurityView() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {scanResults.length > 0 && (
+          {scanResults && (
             <button
               onClick={clearResults}
               className="btn-secondary flex items-center gap-2 text-sm"
@@ -526,7 +537,7 @@ export default function IaCSecurityView() {
                 >
                   <div className="text-center">
                     <Clock className="text-gray-400 mx-auto mb-2" size={24} />
-                    <p className="text-2xl font-bold text-white">{(currentScan.duration / 1000).toFixed(1)}s</p>
+                    <p className="text-2xl font-bold text-white">{((currentScan?.duration ?? 0) / 1000).toFixed(1)}s</p>
                     <p className="text-gray-400 text-sm">Duration</p>
                   </div>
                 </motion.div>
@@ -554,7 +565,12 @@ export default function IaCSecurityView() {
                   {(['critical', 'high', 'medium', 'low'] as Severity[]).map((sev) => (
                     <button
                       key={sev}
-                      onClick={() => setSeverityFilter(sev, !selectedSeverities.includes(sev))}
+                      onClick={() => {
+                        const newFilters = selectedSeverities.includes(sev)
+                          ? selectedSeverities.filter((s: Severity) => s !== sev)
+                          : [...selectedSeverities, sev];
+                        setSeverityFilter(newFilters);
+                      }}
                       className={`px-2 py-1 text-xs rounded capitalize transition-colors ${
                         selectedSeverities.includes(sev)
                           ? getSeverityBadgeColor(sev)
@@ -570,7 +586,12 @@ export default function IaCSecurityView() {
                   {iacTypes.slice(0, 4).map((type) => (
                     <button
                       key={type}
-                      onClick={() => setTypeFilter(type, !selectedTypes.includes(type))}
+                      onClick={() => {
+                        const newFilters = selectedTypes.includes(type)
+                          ? selectedTypes.filter((t: IaCType) => t !== type)
+                          : [...selectedTypes, type];
+                        setIaCTypeFilter(newFilters);
+                      }}
                       className={`px-2 py-1 text-xs rounded transition-colors flex items-center gap-1 ${
                         selectedTypes.includes(type)
                           ? 'bg-purple-500/20 text-purple-500'
@@ -595,7 +616,7 @@ export default function IaCSecurityView() {
 
               {filteredFindings.length === 0 ? (
                 <div className="text-center py-12">
-                  {currentScan ? (
+                  {scanResults ? (
                     <>
                       <CheckCircle className="text-dws-green mx-auto mb-3" size={48} />
                       <p className="text-white font-medium">No security issues found!</p>
@@ -626,10 +647,10 @@ export default function IaCSecurityView() {
                             <span className={`px-2 py-0.5 rounded text-xs font-medium ${getSeverityBadgeColor(finding.severity)}`}>
                               {finding.severity.toUpperCase()}
                             </span>
-                            <span className="text-xs text-gray-500 font-mono">{finding.ruleId}</span>
-                            {finding.compliance && finding.compliance.length > 0 && (
+                            <span className="text-xs text-gray-500 font-mono">{finding.checkId}</span>
+                            {finding.framework && (
                               <span className="text-xs text-joe-blue">
-                                {finding.compliance.slice(0, 2).join(', ')}
+                                {finding.framework}
                               </span>
                             )}
                           </div>

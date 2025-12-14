@@ -12,7 +12,6 @@ import {
   BarChart3,
   Layers,
   ChevronRight,
-  ExternalLink,
   Bot,
   Lock,
   Eye,
@@ -22,7 +21,6 @@ import {
   Activity,
   Award,
   TrendingUp,
-  Clock,
   CheckCircle,
   AlertTriangle,
   GitBranch

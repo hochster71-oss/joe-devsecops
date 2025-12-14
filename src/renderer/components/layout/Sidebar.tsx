@@ -1,4 +1,4 @@
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import {
   LayoutDashboard,
@@ -21,8 +21,7 @@ import {
   Brain,
   Cloud,
   Globe,
-  Link2,
-  Bell
+  Link2
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -54,7 +53,6 @@ const bottomNavItems = [
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const { user } = useAuthStore();
-  const location = useLocation();
 
   return (
     <aside
@@ -110,7 +108,7 @@ export default function Sidebar() {
       <div className="py-4 px-3 border-t border-dws-border space-y-1">
         {bottomNavItems.map(({ path, label, icon: Icon, adminOnly }) => {
           // Hide admin-only items for non-admins
-          if (adminOnly && user?.role !== 'administrator') return null;
+          if (adminOnly && user?.role !== 'administrator') {return null;}
 
           return (
             <NavLink

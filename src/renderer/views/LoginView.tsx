@@ -29,7 +29,7 @@ export default function LoginView() {
     clearError,
     isAuthenticated,
     require2FA,
-    pending2FAPhone,
+    pending2FAPhone: _pending2FAPhone,
     clear2FARequirement,
     hasPinSetup,
     rememberedUser
@@ -45,7 +45,8 @@ export default function LoginView() {
 
   // Clear error when inputs change
   useEffect(() => {
-    if (error) clearError();
+    if (error) {clearError();}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [username, password, twoFACode, pinCode]);
 
   // Focus first 2FA input when 2FA is required
@@ -77,7 +78,7 @@ export default function LoginView() {
 
   // PIN input handlers
   const handlePinChange = (index: number, value: string) => {
-    if (value && !/^\d$/.test(value)) return;
+    if (value && !/^\d$/.test(value)) {return;}
     const newPin = [...pinCode];
     newPin[index] = value;
     setPinCode(newPin);
@@ -104,7 +105,7 @@ export default function LoginView() {
   const handlePinSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const pin = pinCode.join('');
-    if (pin.length !== 6) return;
+    if (pin.length !== 6) {return;}
     const success = await loginWithPin(pin);
     if (success) {
       navigate('/dashboard', { replace: true });
@@ -118,7 +119,7 @@ export default function LoginView() {
 
   const handle2FACodeChange = (index: number, value: string) => {
     // Only allow digits
-    if (value && !/^\d$/.test(value)) return;
+    if (value && !/^\d$/.test(value)) {return;}
 
     const newCode = [...twoFACode];
     newCode[index] = value;
@@ -149,7 +150,7 @@ export default function LoginView() {
   const handleVerify2FA = async (e: React.FormEvent) => {
     e.preventDefault();
     const code = twoFACode.join('');
-    if (code.length !== 6) return;
+    if (code.length !== 6) {return;}
 
     const success = await verify2FA(code);
     if (success) {

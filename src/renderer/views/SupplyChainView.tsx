@@ -12,7 +12,6 @@ import {
   Shield,
   AlertTriangle,
   FileSearch,
-  Download,
   RefreshCw,
   ChevronRight,
   Lock,
@@ -20,25 +19,16 @@ import {
   Eye,
   EyeOff,
   CheckCircle,
-  XCircle,
   Clock,
   Folder,
   FileCode,
   Key,
   Database,
-  GitBranch,
   Scale,
   AlertCircle,
   Search,
-  Filter,
-  BarChart3,
-  PieChart,
-  TrendingUp,
   Zap,
-  Archive,
-  Plus,
   Trash2,
-  Copy,
   FileDown,
   KeyRound,
   ShieldCheck
@@ -162,7 +152,7 @@ export default function SupplyChainView() {
   const [vaultError, setVaultError] = useState<string | null>(null);
   const [masterPassword, setMasterPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [selectedFinding, setSelectedFinding] = useState<SecretFinding | null>(null);
+  const [_selectedFinding, setSelectedFinding] = useState<SecretFinding | null>(null);
   const [moveToVaultName, setMoveToVaultName] = useState('');
 
   // ========================================
@@ -328,7 +318,7 @@ export default function SupplyChainView() {
     }
   };
 
-  const handleMoveToVault = async (finding: SecretFinding, secretValue: string) => {
+  const _handleMoveToVault = async (finding: SecretFinding, secretValue: string) => {
     if (!vaultUnlocked) {
       setVaultError('Vault must be unlocked to add secrets');
       return;
@@ -397,14 +387,14 @@ export default function SupplyChainView() {
   };
 
   const getRiskColor = (score: number) => {
-    if (score >= 80) return 'text-dws-green';
-    if (score >= 60) return 'text-alert-warning';
-    if (score >= 40) return 'text-orange-500';
+    if (score >= 80) {return 'text-dws-green';}
+    if (score >= 60) {return 'text-alert-warning';}
+    if (score >= 40) {return 'text-orange-500';}
     return 'text-alert-critical';
   };
 
   const filteredFindings = scanResult?.findings.filter(f => {
-    if (secretFilter === 'all') return true;
+    if (secretFilter === 'all') {return true;}
     return f.severity === secretFilter;
   }) || [];
 

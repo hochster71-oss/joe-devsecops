@@ -515,9 +515,9 @@ export const determineNASACategory = (
   missionCritical: boolean,
   propertyDamage: 'none' | 'minor' | 'major' | 'critical'
 ): NASASafetyCategory => {
-  if (lossOfLife || propertyDamage === 'critical') return 'CAT-I';
-  if (severeInjury || missionCritical || propertyDamage === 'major') return 'CAT-II';
-  if (propertyDamage === 'minor') return 'CAT-III';
+  if (lossOfLife || propertyDamage === 'critical') {return 'CAT-I';}
+  if (severeInjury || missionCritical || propertyDamage === 'major') {return 'CAT-II';}
+  if (propertyDamage === 'minor') {return 'CAT-III';}
   return 'CAT-IV';
 };
 
@@ -602,7 +602,7 @@ export const getMappedControls = (
  * Calculate overall compliance score
  */
 export const calculateComplianceScore = (findings: ComplianceFinding[]): number => {
-  if (findings.length === 0) return 100;
+  if (findings.length === 0) {return 100;}
 
   const weights = {
     compliant: 100,

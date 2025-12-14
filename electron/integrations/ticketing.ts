@@ -153,7 +153,7 @@ class TicketingService {
     const configs = this.getConfigs();
     const index = configs.findIndex(c => c.platform === platform);
 
-    if (index === -1) return null;
+    if (index === -1) {return null;}
 
     configs[index] = { ...configs[index], ...updates, platform };
     this.store.set('ticketingConfigs', configs);

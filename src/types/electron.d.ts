@@ -458,6 +458,51 @@ interface ElectronAPI {
     cleanup: (daysToKeep?: number) => Promise<{ success: boolean; deletedCount: number }>;
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  iac: {
+    scanDirectory: (path: string) => Promise<any>;
+    scanFile: (path: string) => Promise<any[]>;
+    getRules: () => Promise<any[]>;
+    enableRule: (ruleId: string) => Promise<void>;
+    disableRule: (ruleId: string) => Promise<void>;
+    selectDirectory: () => Promise<string | null>;
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  apiSecurity: {
+    scanSpec: (filePath: string) => Promise<any>;
+    scanDirectory: (dirPath: string) => Promise<any[]>;
+    getOWASPTop10: () => Promise<any[]>;
+    selectSpecFile: () => Promise<string | null>;
+  };
+
+  notifications: {
+    getHistory: () => Promise<unknown[]>;
+    getAlertRules: () => Promise<unknown[]>;
+    createAlertRule: (rule: unknown) => Promise<void>;
+    updateAlertRule: (id: string, updates: unknown) => Promise<void>;
+    deleteAlertRule: (id: string) => Promise<void>;
+    getChannelConfig: () => Promise<unknown>;
+    updateChannelConfig: (channel: string, config: unknown) => Promise<void>;
+    configureChannel: (channel: string, config: unknown) => Promise<{ success: boolean; error?: string }>;
+    testChannel: (channel: string) => Promise<{ success: boolean; error?: string }>;
+    send: (payload: unknown) => Promise<void>;
+  };
+
+  siem: {
+    connect: (platform: string, config: unknown) => Promise<{ success: boolean; error?: string }>;
+    disconnect: (platform: string) => Promise<void>;
+    testConnection: (platform: string) => Promise<{ success: boolean; error?: string }>;
+    configure: (platform: string, config: unknown) => Promise<{ success: boolean; error?: string }>;
+  };
+
+  ticketing: {
+    connect: (platform: string, config: unknown) => Promise<{ success: boolean; error?: string }>;
+    disconnect: (platform: string) => Promise<void>;
+    testConnection: (platform: string) => Promise<{ success: boolean; error?: string }>;
+    configure: (platform: string, config: unknown) => Promise<{ success: boolean; error?: string }>;
+  };
+
   spaceCompliance: {
     registerProject: (config: {
       name: string;

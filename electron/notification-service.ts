@@ -288,7 +288,7 @@ class NotificationService {
   updateAlertRule(ruleId: string, updates: Partial<AlertRule>): AlertRule | null {
     const rules = this.getAlertRules();
     const index = rules.findIndex(r => r.id === ruleId);
-    if (index === -1) return null;
+    if (index === -1) {return null;}
 
     rules[index] = {
       ...rules[index],
@@ -303,7 +303,7 @@ class NotificationService {
   deleteAlertRule(ruleId: string): boolean {
     const rules = this.getAlertRules();
     const filtered = rules.filter(r => r.id !== ruleId);
-    if (filtered.length === rules.length) return false;
+    if (filtered.length === rules.length) {return false;}
     this.store.set('alertRules', filtered);
     return true;
   }
@@ -371,10 +371,10 @@ class NotificationService {
   }
 
   private isThrottled(ruleId: string, throttleMinutes: number): boolean {
-    if (throttleMinutes <= 0) return false;
+    if (throttleMinutes <= 0) {return false;}
 
     const lastSent = this.throttleMap.get(ruleId);
-    if (!lastSent) return false;
+    if (!lastSent) {return false;}
 
     const elapsed = (Date.now() - lastSent) / 60000; // minutes
     return elapsed < throttleMinutes;

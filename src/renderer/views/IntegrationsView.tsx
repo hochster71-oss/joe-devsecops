@@ -3,7 +3,7 @@
  * Configure SIEM, Ticketing, and Notification integrations
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 
 // Types
 type TabType = 'notifications' | 'siem' | 'ticketing' | 'cicd';
@@ -127,7 +127,7 @@ const ConfigModal: React.FC<{
   title: string;
   children: React.ReactNode;
 }> = ({ isOpen, onClose, title, children }) => {
-  if (!isOpen) return null;
+  if (!isOpen) {return null;}
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -160,7 +160,7 @@ export const IntegrationsView: React.FC = () => {
   const [savingConfig, setSavingConfig] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [_testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
   // Configuration form state
   const [configFormData, setConfigFormData] = useState<Record<string, string>>({});
@@ -179,7 +179,7 @@ export const IntegrationsView: React.FC = () => {
   };
 
   const closeConfigModal = () => {
-    setConfigModal({ open: false, type: '', platform: '');
+    setConfigModal({ open: false, type: '', platform: '' });
     setConfigFormData({});
     setSaveError(null);
     setSaveSuccess(false);
@@ -260,7 +260,7 @@ export const IntegrationsView: React.FC = () => {
           [platform]: { connected: true, lastSync: new Date().toISOString() }
         }));
       } else {
-        setTestResult({ success: false, message: result.error || 'Connection test failed');
+        setTestResult({ success: false, message: result.error || 'Connection test failed' });
       }
     } catch (error) {
       setTestResult({

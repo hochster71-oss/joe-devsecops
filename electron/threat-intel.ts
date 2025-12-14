@@ -108,8 +108,8 @@ class ThreatIntelService {
       }
 
       return null;
-    } catch (error: any) {
-      console.error(`[J.O.E. ThreatIntel] EPSS lookup failed for ${cveId}:`, error.message);
+    } catch (error) {
+      console.error(`[J.O.E. ThreatIntel] EPSS lookup failed for ${cveId}:`, (error as Error).message);
       return null;
     }
   }
@@ -124,10 +124,10 @@ class ThreatIntelService {
     // Return cached results
     for (const id of cveIds) {
       const cached = this.epssCache.get(id);
-      if (cached) results.set(id, cached);
+      if (cached) {results.set(id, cached);}
     }
 
-    if (uncached.length === 0) return results;
+    if (uncached.length === 0) {return results;}
 
     try {
       console.log(`[J.O.E. ThreatIntel] Batch fetching EPSS for ${uncached.length} CVEs...`);
@@ -158,8 +158,8 @@ class ThreatIntelService {
       }
 
       console.log(`[J.O.E. ThreatIntel] Retrieved EPSS scores for ${results.size} CVEs`);
-    } catch (error: any) {
-      console.error('[J.O.E. ThreatIntel] Batch EPSS lookup failed:', error.message);
+    } catch (error) {
+      console.error('[J.O.E. ThreatIntel] Batch EPSS lookup failed:', (error as Error).message);
     }
 
     return results;
@@ -201,8 +201,8 @@ class ThreatIntelService {
 
       console.log(`[J.O.E. ThreatIntel] KEV catalog loaded: ${this.kevCache.count} vulnerabilities`);
       return this.kevCache;
-    } catch (error: any) {
-      console.error('[J.O.E. ThreatIntel] KEV catalog fetch failed:', error.message);
+    } catch (error) {
+      console.error('[J.O.E. ThreatIntel] KEV catalog fetch failed:', (error as Error).message);
       return this.kevCache; // Return stale cache if available
     }
   }
@@ -212,7 +212,7 @@ class ThreatIntelService {
    */
   async isInKEV(cveId: string): Promise<KEVEntry | null> {
     const catalog = await this.getKEVCatalog();
-    if (!catalog) return null;
+    if (!catalog) {return null;}
 
     return catalog.vulnerabilities.find(v => v.cveID === cveId) || null;
   }
@@ -236,26 +236,26 @@ class ThreatIntelService {
       const data = await response.json();
       const cve = data.vulnerabilities?.[0]?.cve;
 
-      if (!cve) return null;
+      if (!cve) {return null;}
 
       const cvssV3 = cve.metrics?.cvssMetricV31?.[0]?.cvssData ||
                      cve.metrics?.cvssMetricV30?.[0]?.cvssData;
       const cvssV2 = cve.metrics?.cvssMetricV2?.[0]?.cvssData;
 
       return {
-        description: cve.descriptions?.find((d: any) => d.lang === 'en')?.value || 'No description available',
+        description: cve.descriptions?.find((d: { lang: string; value: string }) => d.lang === 'en')?.value || 'No description available',
         cvssV3Score: cvssV3?.baseScore || 0,
         cvssV3Severity: cvssV3?.baseSeverity || 'UNKNOWN',
         cvssV2Score: cvssV2?.baseScore,
         publishedDate: cve.published,
         lastModified: cve.lastModified,
-        references: cve.references?.map((r: any) => r.url) || [],
-        cwes: cve.weaknesses?.flatMap((w: any) =>
-          w.description?.map((d: any) => d.value)
+        references: cve.references?.map((r: { url: string }) => r.url) || [],
+        cwes: cve.weaknesses?.flatMap((w: { description?: Array<{ value: string }> }) =>
+          w.description?.map((d: { value: string }) => d.value)
         ).filter(Boolean) || []
       };
-    } catch (error: any) {
-      console.error(`[J.O.E. ThreatIntel] NVD lookup failed for ${cveId}:`, error.message);
+    } catch (error) {
+      console.error(`[J.O.E. ThreatIntel] NVD lookup failed for ${cveId}:`, (error as Error).message);
       return null;
     }
   }
@@ -464,7 +464,7 @@ class ThreatIntelService {
    */
   async searchKEV(query: string): Promise<KEVEntry[]> {
     const catalog = await this.getKEVCatalog();
-    if (!catalog) return [];
+    if (!catalog) {return [];}
 
     const lowerQuery = query.toLowerCase();
     return catalog.vulnerabilities.filter(v =>

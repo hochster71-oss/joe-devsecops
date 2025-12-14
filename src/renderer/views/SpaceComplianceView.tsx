@@ -10,17 +10,12 @@ import {
   Target,
   ChevronRight,
   AlertTriangle,
-  FileText,
   Plane,
-  Globe,
   Satellite,
-  Zap,
   Activity,
-  BarChart3,
   RefreshCw,
   Download,
   ArrowRight,
-  Award,
   Brain,
   ExternalLink,
   BookOpen,
@@ -195,7 +190,7 @@ const NASA_SAFETY_CATEGORIES: Record<NASASafetyCategory, {
   }
 };
 
-const DO178C_LEVELS: Record<DO178CLevel, {
+const _DO178C_LEVELS: Record<DO178CLevel, {
   level: DO178CLevel;
   name: string;
   failureCondition: string;
@@ -291,8 +286,8 @@ const generatePOAM = (findings: ComplianceFinding[]): POAMItem[] => {
 export default function SpaceComplianceView() {
   const [activeTab, setActiveTab] = useState<'overview' | 'nasa' | 'do178c' | 'cc' | 'poam' | 'mapping'>('overview');
   const [selectedCategory, setSelectedCategory] = useState<NASASafetyCategory | null>(null);
-  const [selectedDAL, setSelectedDAL] = useState<DO178CLevel | null>(null);
-  const [selectedEAL, setSelectedEAL] = useState<CommonCriteriaEAL | null>(null);
+  const [_selectedDAL, _setSelectedDAL] = useState<DO178CLevel | null>(null);
+  const [_selectedEAL, setSelectedEAL] = useState<CommonCriteriaEAL | null>(null);
   const [isAssessing, setIsAssessing] = useState(false);
   const [showAssessmentModal, setShowAssessmentModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
@@ -454,6 +449,7 @@ Major Findings: ${majorCount}`;
 
     try {
       // Try to use real Ollama AI if available
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const electronAPI = (window as any).electronAPI;
       if (electronAPI?.ollama?.chat) {
         const aiResponse = await electronAPI.ollama.chat(prompt, context);
@@ -852,6 +848,7 @@ professional before submission to certification authorities.
         ].map(tab => (
           <button
             key={tab.id}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             onClick={() => setActiveTab(tab.id as any)}
             className={`flex items-center gap-2 px-4 py-2 rounded-t-lg transition-colors whitespace-nowrap ${
               activeTab === tab.id
@@ -1391,12 +1388,12 @@ professional before submission to certification authorities.
         ) : (
           <div className="prose prose-invert max-w-none text-sm max-h-[60vh] overflow-y-auto">
             {aiRemediationContent.split('\n').map((line, idx) => {
-              if (line.startsWith('## ')) return <h2 key={idx} className="text-lg font-bold text-white mt-4 mb-2">{line.replace('## ', '')}</h2>;
-              if (line.startsWith('### ')) return <h3 key={idx} className="text-md font-semibold text-joe-blue mt-3 mb-1">{line.replace('### ', '')}</h3>;
-              if (line.startsWith('**') && line.endsWith('**')) return <p key={idx} className="font-bold text-white mt-2">{line.replace(/\*\*/g, '')}</p>;
-              if (line.startsWith('- ')) return <div key={idx} className="flex items-start gap-2 ml-4 my-1"><span className="text-joe-blue">•</span><span className="text-gray-300">{line.replace('- ', '')}</span></div>;
-              if (line.startsWith('---')) return <hr key={idx} className="border-dws-border my-4" />;
-              if (line.trim() === '') return <div key={idx} className="h-2" />;
+              if (line.startsWith('## ')) {return <h2 key={idx} className="text-lg font-bold text-white mt-4 mb-2">{line.replace('## ', '')}</h2>;}
+              if (line.startsWith('### ')) {return <h3 key={idx} className="text-md font-semibold text-joe-blue mt-3 mb-1">{line.replace('### ', '')}</h3>;}
+              if (line.startsWith('**') && line.endsWith('**')) {return <p key={idx} className="font-bold text-white mt-2">{line.replace(/\*\*/g, '')}</p>;}
+              if (line.startsWith('- ')) {return <div key={idx} className="flex items-start gap-2 ml-4 my-1"><span className="text-joe-blue">•</span><span className="text-gray-300">{line.replace('- ', '')}</span></div>;}
+              if (line.startsWith('---')) {return <hr key={idx} className="border-dws-border my-4" />;}
+              if (line.trim() === '') {return <div key={idx} className="h-2" />;}
               return <p key={idx} className="my-1 text-gray-300">{line}</p>;
             })}
           </div>

@@ -12,7 +12,6 @@ import {
   Terminal,
   FileCode,
   Shield,
-  AlertTriangle,
   ChevronRight,
   Copy,
   ExternalLink,

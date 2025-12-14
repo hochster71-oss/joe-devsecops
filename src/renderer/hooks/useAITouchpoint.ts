@@ -26,6 +26,7 @@ import type {
 // Type-safe access to getElectronAPI()
 // =============================================================================
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const getElectronAPI = (): any => (window as any).electronAPI;
 
 // =============================================================================
@@ -35,7 +36,7 @@ const getElectronAPI = (): any => (window as any).electronAPI;
 const DEFAULT_HOVER_DELAY = 300;
 const DEFAULT_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 const MAX_CONCURRENT_REQUESTS = 3;
-const REQUEST_TIMEOUT = 30000; // 30 seconds
+const _REQUEST_TIMEOUT = 30000; // 30 seconds
 
 // =============================================================================
 // CACHE UTILITIES
@@ -54,7 +55,7 @@ const generateCacheKey = (context: AITouchpointContext): string => {
  * Check if cache entry is valid
  */
 const isCacheValid = <T>(entry: CacheEntry<T> | undefined): entry is CacheEntry<T> => {
-  if (!entry) return false;
+  if (!entry) {return false;}
   return Date.now() - entry.timestamp < entry.ttl;
 };
 
@@ -135,18 +136,18 @@ export interface UseAITouchpointReturn {
 const globalCache = new Map<string, CacheEntry<AITouchpointResponse>>();
 const activeRequests = new Set<string>();
 const requestQueue: QueuedRequest[] = [];
-let sessionId = uuidv4();
+const sessionId = uuidv4();
 
 // Process queue when requests complete
 const processQueue = async (): Promise<void> => {
-  if (activeRequests.size >= MAX_CONCURRENT_REQUESTS) return;
-  if (requestQueue.length === 0) return;
+  if (activeRequests.size >= MAX_CONCURRENT_REQUESTS) {return;}
+  if (requestQueue.length === 0) {return;}
 
   // Sort by priority
   requestQueue.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
 
   const request = requestQueue.shift();
-  if (!request) return;
+  if (!request) {return;}
 
   activeRequests.add(request.id);
 
@@ -298,17 +299,17 @@ const parseAIResponse = (
 // Extract framework from citation text
 const extractFramework = (text: string): Framework => {
   const lower = text.toLowerCase();
-  if (lower.includes('nist') && lower.includes('csf')) return 'NIST-CSF-2.0';
-  if (lower.includes('nist') && lower.includes('800-53')) return 'NIST-800-53';
-  if (lower.includes('nist') && lower.includes('800-171')) return 'NIST-800-171';
-  if (lower.includes('mitre') && lower.includes('attack')) return 'MITRE-ATTACK';
-  if (lower.includes('mitre') && lower.includes('defend')) return 'MITRE-DEFEND';
-  if (lower.includes('cis')) return 'CIS-CONTROLS';
-  if (lower.includes('owasp') && lower.includes('top')) return 'OWASP-TOP-10';
-  if (lower.includes('owasp') && lower.includes('asvs')) return 'OWASP-ASVS';
-  if (lower.includes('nasa')) return 'NASA-STD-8719';
-  if (lower.includes('do-178')) return 'DO-178C';
-  if (lower.includes('cmmc')) return 'CMMC-2.0';
+  if (lower.includes('nist') && lower.includes('csf')) {return 'NIST-CSF-2.0';}
+  if (lower.includes('nist') && lower.includes('800-53')) {return 'NIST-800-53';}
+  if (lower.includes('nist') && lower.includes('800-171')) {return 'NIST-800-171';}
+  if (lower.includes('mitre') && lower.includes('attack')) {return 'MITRE-ATTACK';}
+  if (lower.includes('mitre') && lower.includes('defend')) {return 'MITRE-DEFEND';}
+  if (lower.includes('cis')) {return 'CIS-CONTROLS';}
+  if (lower.includes('owasp') && lower.includes('top')) {return 'OWASP-TOP-10';}
+  if (lower.includes('owasp') && lower.includes('asvs')) {return 'OWASP-ASVS';}
+  if (lower.includes('nasa')) {return 'NASA-STD-8719';}
+  if (lower.includes('do-178')) {return 'DO-178C';}
+  if (lower.includes('cmmc')) {return 'CMMC-2.0';}
   return 'NIST-800-53';
 };
 
@@ -323,7 +324,7 @@ const extractControlId = (text: string): string => {
 
   for (const pattern of patterns) {
     const match = text.match(pattern);
-    if (match) return match[1];
+    if (match) {return match[1];}
   }
 
   return '';
@@ -524,7 +525,7 @@ export const useAITouchpoint = (options: UseAITouchpointOptions): UseAITouchpoin
 
   // Analytics
   const trackInteraction = useCallback((type: 'hover' | 'click' | 'deepdive' | 'dismiss') => {
-    if (!getElectronAPI()?.analytics?.track) return;
+    if (!getElectronAPI()?.analytics?.track) {return;}
 
     const interaction: Omit<UserInteraction, 'id' | 'timestamp'> = {
       sessionId,
@@ -541,8 +542,8 @@ export const useAITouchpoint = (options: UseAITouchpointOptions): UseAITouchpoin
   }, [elementType, elementId, data]);
 
   const rateResponse = useCallback((rating: number) => {
-    if (!currentRequestIdRef.current) return;
-    if (!getElectronAPI()?.analytics?.rate) return;
+    if (!currentRequestIdRef.current) {return;}
+    if (!getElectronAPI()?.analytics?.rate) {return;}
 
     getElectronAPI().analytics.rate(currentRequestIdRef.current, rating);
   }, []);

@@ -5,7 +5,7 @@
  * Comprehensive API security assessment dashboard
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Globe,
@@ -17,12 +17,8 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  Folder,
-  FileCode,
-  Code,
   Lock,
   Unlock,
-  Key,
   AlertCircle,
   Search,
   Filter,
@@ -34,12 +30,10 @@ import {
   ExternalLink,
   Play,
   Upload,
-  FileJson,
   Activity,
   Users,
   Settings,
   BarChart3,
-  TrendingUp,
   ShieldAlert,
   ShieldCheck
 } from 'lucide-react';
@@ -57,18 +51,18 @@ type Severity = 'critical' | 'high' | 'medium' | 'low' | 'info';
 
 interface APIFinding {
   id: string;
-  ruleId: string;
   title: string;
   description: string;
   severity: Severity;
-  owaspCategory: OWASPCategory;
+  category: OWASPCategory;
   endpoint?: string;
   method?: string;
   parameter?: string;
+  location: string;
   remediation: string;
-  references?: string[];
+  owaspApiReference: string;
   cwe?: string;
-  evidence?: string;
+  references?: string[];
 }
 
 interface APIEndpoint {
@@ -81,15 +75,18 @@ interface APIEndpoint {
 }
 
 interface APIScanResult {
-  scanId: string;
-  timestamp: string;
-  duration: number;
+  scanId?: string;
+  timestamp?: string;
+  scanTime?: string;
+  duration?: number;
   specFile: string;
-  apiTitle: string;
+  apiName?: string;
+  apiTitle?: string;
   apiVersion: string;
+  openApiVersion?: string;
   baseUrl?: string;
-  endpointsAnalyzed: number;
-  endpoints: APIEndpoint[];
+  endpointsAnalyzed?: number;
+  endpoints?: APIEndpoint[];
   findings: APIFinding[];
   summary: {
     critical: number;
@@ -99,8 +96,14 @@ interface APIScanResult {
     info: number;
     total: number;
   };
-  securityScore: number;
-  owaspCoverage: Record<OWASPCategory, { findings: number; status: 'pass' | 'warn' | 'fail' }>;
+  securityScore?: number;
+  securitySchemes?: string[];
+  coverage?: {
+    authenticated: number;
+    unauthenticated: number;
+    total: number;
+  };
+  owaspCoverage?: Record<OWASPCategory, { findings: number; status: 'pass' | 'warn' | 'fail' }>;
 }
 
 // OWASP API Top 10 2023 definitions
@@ -154,24 +157,29 @@ const OWASP_API_TOP_10: Record<OWASPCategory, { name: string; description: strin
 export default function APISecurityView() {
   const {
     scanResults,
-    currentScan,
+    currentResult,
     isScanning,
     error,
-    selectedSeverities,
-    selectedCategories,
+    severityFilter,
+    categoryFilter,
     searchQuery,
     setSeverityFilter,
-    setCategoryFilter,
+    setCategoryFilter: _setCategoryFilter,
     setSearchQuery,
     getFilteredFindings,
     clearResults,
     getSecurityScore
   } = useAPISecurityStore();
 
+  // Alias for UI compatibility - cast to local interface for extended properties
+  const currentScan = currentResult as APIScanResult | null;
+  const selectedSeverities = severityFilter;
+  const _selectedCategories = categoryFilter;
+
   const [specPath, setSpecPath] = useState<string>('');
   const [selectedFinding, setSelectedFinding] = useState<APIFinding | null>(null);
   const [activeTab, setActiveTab] = useState<'scan' | 'findings' | 'endpoints' | 'owasp'>('scan');
-  const [selectedEndpoint, setSelectedEndpoint] = useState<APIEndpoint | null>(null);
+  const [_selectedEndpoint, _setSelectedEndpoint] = useState<APIEndpoint | null>(null);
 
   // Severity styling
   const getSeverityColor = (severity: Severity) => {
@@ -216,9 +224,9 @@ export default function APISecurityView() {
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 80) return 'text-dws-green';
-    if (score >= 60) return 'text-alert-warning';
-    if (score >= 40) return 'text-orange-500';
+    if (score >= 80) {return 'text-dws-green';}
+    if (score >= 60) {return 'text-alert-warning';}
+    if (score >= 40) {return 'text-orange-500';}
     return 'text-alert-critical';
   };
 
@@ -238,7 +246,7 @@ export default function APISecurityView() {
   };
 
   const handleScan = async () => {
-    if (!specPath) return;
+    if (!specPath) {return;}
 
     try {
       await window.electronAPI?.apiSecurity?.scanSpec(specPath);
@@ -333,9 +341,9 @@ export default function APISecurityView() {
         >
           <Server size={18} />
           Endpoints
-          {currentScan?.endpointsAnalyzed > 0 && (
+          {(currentScan?.endpointsAnalyzed ?? 0) > 0 && (
             <span className="ml-1 px-1.5 py-0.5 text-xs bg-joe-blue/20 text-joe-blue rounded">
-              {currentScan.endpointsAnalyzed}
+              {currentScan?.endpointsAnalyzed}
             </span>
           )}
         </button>
@@ -559,7 +567,7 @@ export default function APISecurityView() {
                 >
                   <div className="text-center">
                     <Clock className="text-gray-400 mx-auto mb-2" size={24} />
-                    <p className="text-2xl font-bold text-white">{(currentScan.duration / 1000).toFixed(1)}s</p>
+                    <p className="text-2xl font-bold text-white">{((currentScan?.duration ?? 0) / 1000).toFixed(1)}s</p>
                     <p className="text-gray-400 text-sm">Duration</p>
                   </div>
                 </motion.div>
@@ -649,8 +657,7 @@ export default function APISecurityView() {
                             <span className={`px-2 py-0.5 rounded text-xs font-medium ${getSeverityBadgeColor(finding.severity)}`}>
                               {finding.severity.toUpperCase()}
                             </span>
-                            <span className="text-xs text-joe-blue font-mono">{finding.owaspCategory}</span>
-                            <span className="text-xs text-gray-500 font-mono">{finding.ruleId}</span>
+                            <span className="text-xs text-joe-blue font-mono">{finding.category}</span>
                           </div>
                           <p className="text-white font-medium mb-1">{finding.title}</p>
                           <p className="text-gray-400 text-sm line-clamp-2">{finding.description}</p>
@@ -695,11 +702,13 @@ export default function APISecurityView() {
                         <span className={`px-3 py-1 rounded text-sm font-medium ${getSeverityBadgeColor(selectedFinding.severity)}`}>
                           {selectedFinding.severity.toUpperCase()}
                         </span>
-                        <span className="text-joe-blue font-mono text-sm">{selectedFinding.owaspCategory}</span>
+                        <span className="text-joe-blue font-mono text-sm">{selectedFinding.category}</span>
                       </div>
                       <button
+                        type="button"
                         onClick={() => setSelectedFinding(null)}
                         className="text-gray-400 hover:text-white"
+                        title="Close"
                       >
                         <XCircle size={24} />
                       </button>
@@ -730,14 +739,14 @@ export default function APISecurityView() {
 
                       <div className="p-3 bg-dws-dark rounded-lg">
                         <p className="text-gray-400 text-sm mb-1">OWASP Category</p>
-                        <p className="text-white">{OWASP_API_TOP_10[selectedFinding.owaspCategory]?.name}</p>
-                        <p className="text-gray-500 text-sm mt-1">{OWASP_API_TOP_10[selectedFinding.owaspCategory]?.description}</p>
+                        <p className="text-white">{OWASP_API_TOP_10[selectedFinding.category]?.name}</p>
+                        <p className="text-gray-500 text-sm mt-1">{OWASP_API_TOP_10[selectedFinding.category]?.description}</p>
                       </div>
 
-                      {selectedFinding.evidence && (
+                      {selectedFinding.location && (
                         <div className="p-3 bg-dws-dark rounded-lg">
-                          <p className="text-gray-400 text-sm mb-1">Evidence</p>
-                          <pre className="text-white text-sm font-mono overflow-x-auto">{selectedFinding.evidence}</pre>
+                          <p className="text-gray-400 text-sm mb-1">Location</p>
+                          <pre className="text-white text-sm font-mono overflow-x-auto">{selectedFinding.location}</pre>
                         </div>
                       )}
 
@@ -823,19 +832,19 @@ export default function APISecurityView() {
                   </div>
                   <div className="p-3 bg-dws-dark rounded-lg text-center">
                     <p className="text-2xl font-bold text-dws-green">
-                      {currentScan.endpoints.filter(e => e.method === 'GET').length}
+                      {(currentScan?.endpoints ?? []).filter((e: APIEndpoint) => e.method === 'GET').length}
                     </p>
                     <p className="text-gray-400 text-sm">GET</p>
                   </div>
                   <div className="p-3 bg-dws-dark rounded-lg text-center">
                     <p className="text-2xl font-bold text-joe-blue">
-                      {currentScan.endpoints.filter(e => e.method === 'POST').length}
+                      {(currentScan?.endpoints ?? []).filter((e: APIEndpoint) => e.method === 'POST').length}
                     </p>
                     <p className="text-gray-400 text-sm">POST</p>
                   </div>
                   <div className="p-3 bg-dws-dark rounded-lg text-center">
                     <p className="text-2xl font-bold text-alert-critical">
-                      {currentScan.endpoints.filter(e => e.method === 'DELETE').length}
+                      {(currentScan?.endpoints ?? []).filter((e: APIEndpoint) => e.method === 'DELETE').length}
                     </p>
                     <p className="text-gray-400 text-sm">DELETE</p>
                   </div>
@@ -847,10 +856,10 @@ export default function APISecurityView() {
             <div className="glass-card p-6">
               <h3 className="text-white font-medium mb-4 flex items-center gap-2">
                 <Server size={18} className="text-joe-blue" />
-                API Endpoints ({currentScan?.endpoints.length || 0})
+                API Endpoints ({currentScan?.endpoints?.length ?? 0})
               </h3>
 
-              {!currentScan || currentScan.endpoints.length === 0 ? (
+              {!currentScan || (currentScan.endpoints?.length ?? 0) === 0 ? (
                 <div className="text-center py-12">
                   <Server className="text-gray-500 mx-auto mb-3" size={48} />
                   <p className="text-gray-400">No endpoints to display</p>
@@ -858,7 +867,7 @@ export default function APISecurityView() {
                 </div>
               ) : (
                 <div className="space-y-2 max-h-[500px] overflow-y-auto">
-                  {currentScan.endpoints.map((endpoint, index) => (
+                  {(currentScan.endpoints ?? []).map((endpoint: APIEndpoint, index: number) => (
                     <motion.div
                       key={`${endpoint.method}-${endpoint.path}`}
                       initial={{ opacity: 0, x: -20 }}
@@ -882,7 +891,7 @@ export default function APISecurityView() {
                       )}
                       {endpoint.parameters && endpoint.parameters.length > 0 && (
                         <div className="flex items-center gap-2 mt-2 ml-[76px]">
-                          {endpoint.parameters.slice(0, 3).map((param) => (
+                          {endpoint.parameters.slice(0, 3).map((param: { name: string; in: string; required: boolean }) => (
                             <span
                               key={param.name}
                               className={`px-1.5 py-0.5 text-xs rounded ${
@@ -924,7 +933,7 @@ export default function APISecurityView() {
               {currentScan?.owaspCoverage ? (
                 <div className="space-y-3">
                   {Object.entries(OWASP_API_TOP_10).map(([key, value]) => {
-                    const coverage = currentScan.owaspCoverage[key as OWASPCategory];
+                    const coverage = currentScan?.owaspCoverage?.[key as OWASPCategory];
                     return (
                       <div
                         key={key}

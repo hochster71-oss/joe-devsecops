@@ -13,16 +13,16 @@ export default function RiskGauge({ score }: RiskGaugeProps) {
 
   // Determine color based on score
   const getColor = () => {
-    if (clampedScore >= 80) return '#87C549'; // Green
-    if (clampedScore >= 60) return '#FFB000'; // Warning
-    if (clampedScore >= 40) return '#FF6B35'; // High
+    if (clampedScore >= 80) {return '#87C549';} // Green
+    if (clampedScore >= 60) {return '#FFB000';} // Warning
+    if (clampedScore >= 40) {return '#FF6B35';} // High
     return '#FF3366'; // Critical
   };
 
   const getStatus = () => {
-    if (clampedScore >= 80) return 'Excellent';
-    if (clampedScore >= 60) return 'Good';
-    if (clampedScore >= 40) return 'Fair';
+    if (clampedScore >= 80) {return 'Excellent';}
+    if (clampedScore >= 60) {return 'Good';}
+    if (clampedScore >= 40) {return 'Fair';}
     return 'Poor';
   };
 

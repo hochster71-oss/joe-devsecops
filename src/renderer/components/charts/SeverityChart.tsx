@@ -87,7 +87,7 @@ export default function SeverityChart({ data }: SeverityChartProps) {
               const endAngle = currentAngle + angle;
               currentAngle = endAngle;
 
-              if (percentage === 0) return null;
+              if (percentage === 0) {return null;}
 
               const startRad = (startAngle * Math.PI) / 180;
               const endRad = (endAngle * Math.PI) / 180;

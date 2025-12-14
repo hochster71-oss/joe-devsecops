@@ -196,8 +196,8 @@ export default function SbomView() {
   const getLicenseRisk = (license: string) => {
     const permissive = ['MIT', 'Apache-2.0', 'BSD-2-Clause', 'BSD-3-Clause', 'ISC'];
     const copyleft = ['GPL-2.0', 'GPL-3.0', 'LGPL-2.1', 'LGPL-3.0', 'AGPL-3.0'];
-    if (permissive.includes(license)) return { level: 'low', color: 'text-dws-green' };
-    if (copyleft.includes(license)) return { level: 'medium', color: 'text-alert-warning' };
+    if (permissive.includes(license)) {return { level: 'low', color: 'text-dws-green' };}
+    if (copyleft.includes(license)) {return { level: 'medium', color: 'text-alert-warning' };}
     return { level: 'unknown', color: 'text-gray-500' };
   };
 

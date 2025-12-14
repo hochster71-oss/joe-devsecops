@@ -5,8 +5,7 @@
  * particle effects, and cyberpunk aesthetics for 4K displays.
  */
 
-import { useEffect, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
+import { useEffect, useRef } from 'react';
 
 interface Node {
   x: number;
@@ -36,10 +35,10 @@ export default function AINetworkBackground() {
   useEffect(() => {
     const canvas = canvasRef.current;
     const container = containerRef.current;
-    if (!canvas || !container) return;
+    if (!canvas || !container) {return;}
 
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) {return;}
 
     // Set canvas size based on container (not window)
     const resize = () => {
@@ -143,7 +142,7 @@ export default function AINetworkBackground() {
 
         if (dist < 300) {
           conn.pulseProgress += 0.01;
-          if (conn.pulseProgress > 1) conn.pulseProgress = 0;
+          if (conn.pulseProgress > 1) {conn.pulseProgress = 0;}
 
           const alpha = (1 - dist / 300) * 0.3 * conn.strength;
 
@@ -174,14 +173,14 @@ export default function AINetworkBackground() {
       });
 
       // Update and draw nodes
-      nodes.forEach((node, i) => {
+      nodes.forEach((node, _i) => {
         // Update position
         node.x += node.vx;
         node.y += node.vy;
 
         // Bounce off edges
-        if (node.x < 0 || node.x > width) node.vx *= -1;
-        if (node.y < 0 || node.y > height) node.vy *= -1;
+        if (node.x < 0 || node.x > width) {node.vx *= -1;}
+        if (node.y < 0 || node.y > height) {node.vy *= -1;}
 
         // Keep in bounds
         node.x = Math.max(0, Math.min(width, node.x));
@@ -268,8 +267,8 @@ export default function AINetworkBackground() {
         const angle = (Math.PI / 3) * i - Math.PI / 6;
         const hx = x + size * Math.cos(angle);
         const hy = y + size * Math.sin(angle);
-        if (i === 0) ctx.moveTo(hx, hy);
-        else ctx.lineTo(hx, hy);
+        if (i === 0) {ctx.moveTo(hx, hy);}
+        else {ctx.lineTo(hx, hy);}
       }
       ctx.closePath();
       ctx.stroke();

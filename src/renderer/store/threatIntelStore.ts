@@ -332,7 +332,7 @@ export const getFilteredResults = (state: ThreatIntelState): ThreatIntelResult[]
 };
 
 export const getTopVendors = (state: ThreatIntelState, limit = 10): { vendor: string; count: number }[] => {
-  if (!state.kevStats?.byVendor) return [];
+  if (!state.kevStats?.byVendor) {return [];}
 
   return Object.entries(state.kevStats.byVendor)
     .map(([vendor, count]) => ({ vendor, count }))

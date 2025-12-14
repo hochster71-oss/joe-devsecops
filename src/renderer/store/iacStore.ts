@@ -299,20 +299,4 @@ export const useIaCStore = create<IaCState>((set, get) => ({
   }
 }));
 
-// Extend window.electronAPI types
-declare global {
-  interface Window {
-    electronAPI?: {
-      iac?: {
-        scanDirectory: (path: string) => Promise<IaCScanResult>;
-        scanFile: (path: string) => Promise<IaCFinding[]>;
-        getRules: () => Promise<IaCRule[]>;
-        enableRule: (ruleId: string) => Promise<void>;
-        disableRule: (ruleId: string) => Promise<void>;
-      };
-      fs?: {
-        selectDirectory: () => Promise<string | null>;
-      };
-    };
-  }
-}
+// Type declarations consolidated in src/types/electron.d.ts

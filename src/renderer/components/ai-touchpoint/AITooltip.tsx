@@ -6,20 +6,19 @@
  * @version 1.0.0
  */
 
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Brain,
   Loader2,
   AlertCircle,
   ChevronRight,
-  ExternalLink,
   Sparkles,
   Shield,
   X
 } from 'lucide-react';
 import { SourceCitationBadge } from './SourceCitationBadge';
-import type { AITouchpointResponse, Citation } from '../../../types/ai-touchpoint';
+import type { AITouchpointResponse } from '../../../types/ai-touchpoint';
 
 // =============================================================================
 // TYPES
@@ -81,7 +80,7 @@ const tooltipVariants = {
 // =============================================================================
 
 export const AITooltip: React.FC<AITooltipProps> = ({
-  elementId,
+  elementId: _elementId,
   response,
   isLoading,
   error,
@@ -100,7 +99,7 @@ export const AITooltip: React.FC<AITooltipProps> = ({
     if (tooltipRef.current) {
       const rect = tooltipRef.current.getBoundingClientRect();
       const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
+      const _viewportHeight = window.innerHeight;
 
       let newX = position.x - rect.width / 2;
       let newY = position.y - rect.height - 10;

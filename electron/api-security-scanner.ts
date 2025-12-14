@@ -250,7 +250,7 @@ const OWASP_API_CHECKS: Array<{
       for (const [schemaName, schema] of Object.entries(schemas) as [string, Record<string, unknown>][]) {
         const properties = (schema.properties || {}) as Record<string, unknown>;
 
-        for (const [propName, prop] of Object.entries(properties)) {
+        for (const [propName, _prop] of Object.entries(properties)) {
           if (sensitiveFields.some(f => propName.toLowerCase().includes(f))) {
             findings.push({
               id: `API3-sensitive-${schemaName}-${propName}`,
@@ -519,7 +519,7 @@ const OWASP_API_CHECKS: Array<{
       for (const endpoint of endpoints) {
         const responses = endpoint.responses || {};
         for (const code of ['400', '401', '403', '404', '500']) {
-          if (responses[code]) hasErrorSchema = true;
+          if (responses[code]) {hasErrorSchema = true;}
         }
       }
 
@@ -548,11 +548,11 @@ const OWASP_API_CHECKS: Array<{
 
       // Check for version in path
       const versionPatterns = ['/v1', '/v2', '/v3', '/api/v'];
-      let hasVersionedPaths = false;
+      let _hasVersionedPaths = false;
 
       for (const endpoint of endpoints) {
         if (versionPatterns.some(p => endpoint.path.includes(p))) {
-          hasVersionedPaths = true;
+          _hasVersionedPaths = true;
           break;
         }
       }

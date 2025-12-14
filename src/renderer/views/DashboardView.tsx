@@ -1,5 +1,5 @@
-import { useEffect, useState, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { useDashboardStore } from '../store/dashboardStore';
 import {
   ShieldAlert,
@@ -10,7 +10,6 @@ import {
   Activity,
   RefreshCw,
   Play,
-  Target,
   Zap,
   BarChart3,
   FileSearch,
@@ -30,7 +29,6 @@ import {
   Terminal,
   Fingerprint
 } from 'lucide-react';
-import MetricCard from '../components/widgets/MetricCard';
 import RiskGauge from '../components/charts/RiskGauge';
 import SeverityChart from '../components/charts/SeverityChart';
 import RecentFindings from '../components/widgets/RecentFindings';
@@ -53,7 +51,7 @@ import AINetworkBackground from '../components/backgrounds/AINetworkBackground';
 type ModalType = 'risk' | 'findings' | 'sbom' | 'compliance' | 'scan' | 'autofix' | null;
 
 // Animated counter component for impressive number displays
-const AnimatedCounter = ({ value, duration = 2000 }: { value: number; duration?: number }) => {
+const _AnimatedCounter = ({ value, duration = 2000 }: { value: number; duration?: number }) => {
   const [count, setCount] = useState(0);
 
   useEffect(() => {
@@ -63,7 +61,7 @@ const AnimatedCounter = ({ value, duration = 2000 }: { value: number; duration?:
     const timer = setInterval(() => {
       start += 1;
       setCount(start);
-      if (start >= end) clearInterval(timer);
+      if (start >= end) {clearInterval(timer);}
     }, incrementTime);
     return () => clearInterval(timer);
   }, [value, duration]);
@@ -149,7 +147,7 @@ const MegaMetric = ({
   onClick,
   pulse = false
 }: {
-  icon: any;
+  icon: React.ElementType;
   value: string | number;
   label: string;
   sublabel?: string;
@@ -249,7 +247,7 @@ export default function DashboardView() {
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [scanProgress, setScanProgress] = useState(0);
   const [apiStatus, setApiStatus] = useState<string>('checking...');
-  const [aiActive, setAiActive] = useState(true);
+  const [aiActive, _setAiActive] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
 
   // Update time every second
@@ -273,6 +271,7 @@ export default function DashboardView() {
 
   useEffect(() => {
     refreshDashboard();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleRunScan = async () => {

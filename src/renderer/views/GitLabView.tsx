@@ -9,33 +9,26 @@
  * - SLSA Framework v1.0 (Supply Chain Security)
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   GitBranch,
   Shield,
-  ShieldAlert,
   Code,
   Key,
   AlertTriangle,
-  CheckCircle,
   XCircle,
   RefreshCw,
   Loader2,
   Unplug,
   Plug,
-  ChevronDown,
-  ChevronRight,
   Search,
-  Lock,
-  FileCode,
   Package,
   GitPullRequest,
   Eye,
   EyeOff,
   Brain,
   Sparkles,
-  Target,
   Zap,
   X,
   ExternalLink,
@@ -65,10 +58,10 @@ export default function GitLabView() {
     criticalFindings,
     connect,
     disconnect,
-    loadProjects,
+    loadProjects: _loadProjects,
     selectProject,
     scanProject,
-    clearResults
+    clearResults: _clearResults
   } = useGitLabStore();
 
   // Connection form state
@@ -95,7 +88,7 @@ export default function GitLabView() {
   );
 
   const handleConnect = async () => {
-    if (!gitlabUrlInput || !tokenInput) return;
+    if (!gitlabUrlInput || !tokenInput) {return;}
     const success = await connect(gitlabUrlInput, tokenInput);
     if (success) {
       setShowConnectionPanel(false);
@@ -109,7 +102,7 @@ export default function GitLabView() {
   };
 
   const handleScan = async () => {
-    if (!selectedProject) return;
+    if (!selectedProject) {return;}
     try {
       await scanProject();
     } catch (error) {
@@ -117,7 +110,7 @@ export default function GitLabView() {
     }
   };
 
-  const toggleSection = (section: string) => {
+  const _toggleSection = (section: string) => {
     const newSections = new Set(expandedSections);
     if (newSections.has(section)) {
       newSections.delete(section);
@@ -176,7 +169,7 @@ Current Remediation: ${finding.remediation}`;
   };
 
   const handleAnalyzeSAST = async () => {
-    if (!scanResults) return;
+    if (!scanResults) {return;}
 
     setAiAnalysisTitle('AI SAST Analysis Report');
     setAiAnalysisType('sast');
@@ -214,7 +207,7 @@ ${scanResults.sastFindings.slice(0, 10).map(f => `- [${f.severity.toUpperCase()}
   };
 
   const handleAnalyzeSecrets = async () => {
-    if (!scanResults) return;
+    if (!scanResults) {return;}
 
     setAiAnalysisTitle('AI Secret Detection Analysis');
     setAiAnalysisType('secrets');
@@ -250,7 +243,7 @@ ${[...new Set(scanResults.secretsDetected.map(s => s.file))].slice(0, 10).join('
   };
 
   const handleAnalyzePipeline = async () => {
-    if (!scanResults) return;
+    if (!scanResults) {return;}
 
     setAiAnalysisTitle('AI Pipeline Security Analysis');
     setAiAnalysisType('pipeline');
@@ -290,7 +283,7 @@ ${ps.issues.map(i => `- [${i.severity.toUpperCase()}] ${i.title}: ${i.descriptio
   };
 
   const handleGenerateReport = async () => {
-    if (!scanResults) return;
+    if (!scanResults) {return;}
 
     setAiAnalysisTitle('AI Security Assessment Report');
     setAiAnalysisType('report');
@@ -346,9 +339,9 @@ Dependency Vulnerabilities: ${scanResults.dependencyVulnerabilities.length}`;
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 80) return 'text-dws-green';
-    if (score >= 60) return 'text-alert-warning';
-    if (score >= 40) return 'text-alert-high';
+    if (score >= 80) {return 'text-dws-green';}
+    if (score >= 60) {return 'text-alert-warning';}
+    if (score >= 40) {return 'text-alert-high';}
     return 'text-alert-critical';
   };
 
@@ -585,6 +578,7 @@ Dependency Vulnerabilities: ${scanResults.dependencyVulnerabilities.length}`;
               View on GitLab
             </a>
             <button
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               onClick={() => selectProject(null as any)}
               className="text-gray-400 hover:text-white text-sm"
             >

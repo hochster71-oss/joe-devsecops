@@ -152,7 +152,7 @@ class SecurityScanner {
       const vulnerabilities = auditResult.vulnerabilities || {};
 
       for (const [pkg, vuln] of Object.entries(vulnerabilities)) {
-        const v = vuln as any;
+        const v = vuln as Record<string, unknown>;
         const severity = this.mapNpmSeverity(v.severity);
 
         findings.push({
@@ -173,15 +173,15 @@ class SecurityScanner {
         console.log('[J.O.E. Scanner] npm audit: 0 vulnerabilities');
       }
 
-    } catch (error: any) {
+    } catch (error) {
       // npm audit exits with non-zero when vulnerabilities found
-      if (error.stdout) {
+      if ((error as { stdout?: string }).stdout) {
         try {
-          const auditResult = JSON.parse(error.stdout);
+          const auditResult = JSON.parse((error as { stdout?: string }).stdout);
           const vulnerabilities = auditResult.vulnerabilities || {};
 
           for (const [pkg, vuln] of Object.entries(vulnerabilities)) {
-            const v = vuln as any;
+            const v = vuln as Record<string, unknown>;
             const severity = this.mapNpmSeverity(v.severity);
 
             findings.push({
@@ -310,7 +310,7 @@ class SecurityScanner {
       { pattern: /eyJ[a-zA-Z0-9_-]*\.eyJ[a-zA-Z0-9_-]*\.[a-zA-Z0-9_-]*/g, name: 'JWT Token' }
     ];
 
-    const filesToScan = [
+    const _filesToScan = [
       'src/**/*.ts',
       'src/**/*.tsx',
       'electron/**/*.ts',
@@ -334,7 +334,7 @@ class SecurityScanner {
           const relativePath = path.relative(this.projectRoot, file);
 
           // Skip node_modules and dist
-          if (relativePath.includes('node_modules') || relativePath.includes('dist')) continue;
+          if (relativePath.includes('node_modules') || relativePath.includes('dist')) {continue;}
 
           for (const { pattern, name } of secretPatterns) {
             const matches = content.match(pattern);
@@ -774,7 +774,7 @@ class SecurityScanner {
     // Step 1: Run npm audit fix for dependency vulnerabilities
     try {
       console.log('[J.O.E. Scanner] Running npm audit fix...');
-      const { stdout, stderr } = await execAsync('npm audit fix --force 2>&1', {
+      const { stdout, stderr: _stderr } = await execAsync('npm audit fix --force 2>&1', {
         cwd: this.projectRoot,
         timeout: 120000
       });
@@ -788,9 +788,9 @@ class SecurityScanner {
         });
       }
       console.log('[J.O.E. Scanner] npm audit fix output:', stdout.slice(0, 500));
-    } catch (error: any) {
-      console.log('[J.O.E. Scanner] npm audit fix result:', error.stdout?.slice(0, 500) || error.message);
-      if (error.stdout?.includes('fixed') || error.stdout?.includes('0 vulnerabilities')) {
+    } catch (error) {
+      console.log('[J.O.E. Scanner] npm audit fix result:', (error as { stdout?: string }).stdout?.slice(0, 500) || (error as Error).message);
+      if ((error as { stdout?: string }).stdout?.includes('fixed') || (error as { stdout?: string }).stdout?.includes('0 vulnerabilities')) {
         fixed.push({
           id: 'npm-audit-fix',
           title: 'NPM Dependency Vulnerabilities',
@@ -825,11 +825,11 @@ class SecurityScanner {
               reason: result.reason
             });
           }
-        } catch (error: any) {
+        } catch (error) {
           failed.push({
             id: finding.id,
             title: finding.title,
-            reason: error.message || 'Unknown error during fix'
+            reason: (error as Error).message || 'Unknown error during fix'
           });
         }
       }
@@ -1072,11 +1072,11 @@ class SecurityScanner {
         });
       }
       console.log(`[J.O.E. Scanner] Semgrep found ${findings.length} issues`);
-    } catch (error: any) {
-      if (error.message?.includes('not found') || error.message?.includes('not recognized')) {
+    } catch (error) {
+      if ((error as Error).message?.includes('not found') || (error as Error).message?.includes('not recognized')) {
         console.log('[J.O.E. Scanner] Semgrep not installed - skipping SAST scan');
       } else {
-        console.error('[J.O.E. Scanner] Semgrep error:', error.message);
+        console.error('[J.O.E. Scanner] Semgrep error:', (error as Error).message);
       }
     }
 
@@ -1143,8 +1143,8 @@ class SecurityScanner {
       }
 
       console.log(`[J.O.E. Scanner] Docker scan found ${findings.length} vulnerabilities`);
-    } catch (error: any) {
-      console.log('[J.O.E. Scanner] Docker scanning not available:', error.message);
+    } catch (error) {
+      console.log('[J.O.E. Scanner] Docker scanning not available:', (error as Error).message);
     }
 
     return findings;
@@ -1188,23 +1188,23 @@ class SecurityScanner {
       const data = await response.json();
       const cve = data.vulnerabilities?.[0]?.cve;
 
-      if (!cve) return null;
+      if (!cve) {return null;}
 
       const cvssData = cve.metrics?.cvssMetricV31?.[0] || cve.metrics?.cvssMetricV2?.[0];
 
       return {
         id: cve.id,
-        description: cve.descriptions?.find((d: any) => d.lang === 'en')?.value || 'No description',
+        description: cve.descriptions?.find((d: { lang: string; value: string }) => d.lang === 'en')?.value || 'No description',
         severity: cvssData?.cvssData?.baseSeverity || 'UNKNOWN',
         cvss: cvssData?.cvssData?.baseScore || 0,
-        references: cve.references?.map((r: any) => r.url) || [],
+        references: cve.references?.map((r: { url?: string; tags?: string[] }) => r.url) || [],
         publishedDate: cve.published,
-        exploitAvailable: cve.references?.some((r: any) =>
+        exploitAvailable: cve.references?.some((r: { url?: string; tags?: string[] }) =>
           r.tags?.includes('Exploit') || r.url?.includes('exploit')
         ) || false
       };
-    } catch (error: any) {
-      console.error('[J.O.E. Scanner] CVE lookup failed:', error.message);
+    } catch (error) {
+      console.error('[J.O.E. Scanner] CVE lookup failed:', (error as Error).message);
       return null;
     }
   }
@@ -1273,8 +1273,8 @@ class SecurityScanner {
       }
 
       console.log(`[J.O.E. Scanner] Git history scan found ${findings.length} issues`);
-    } catch (error: any) {
-      console.log('[J.O.E. Scanner] Git history scan skipped:', error.message);
+    } catch (error) {
+      console.log('[J.O.E. Scanner] Git history scan skipped:', (error as Error).message);
     }
 
     return findings;
@@ -1315,13 +1315,13 @@ class SecurityScanner {
       }
 
       console.log(`[J.O.E. Scanner] ESLint security found ${findings.length} issues`);
-    } catch (error: any) {
-      if (!error.stdout) {
-        console.log('[J.O.E. Scanner] ESLint scan skipped:', error.message);
+    } catch (error) {
+      if (!(error as { stdout?: string }).stdout) {
+        console.log('[J.O.E. Scanner] ESLint scan skipped:', (error as Error).message);
       } else {
         // ESLint returns non-zero when there are errors, but stdout has results
         try {
-          const results = JSON.parse(error.stdout);
+          const results = JSON.parse((error as { stdout?: string }).stdout);
           for (const file of results) {
             for (const message of file.messages || []) {
               const securityRules = ['no-eval', 'no-implied-eval', 'no-new-func', 'security'];

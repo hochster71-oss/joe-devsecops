@@ -334,12 +334,12 @@ export default function ComplianceView() {
 
       let content: string;
       let fileExtension: string;
-      let mimeType: string;
+      let _mimeType: string;
 
       if (exportFormat === 'json') {
         content = JSON.stringify(reportData, null, 2);
         fileExtension = 'json';
-        mimeType = 'application/json';
+        _mimeType = 'application/json';
       } else if (exportFormat === 'csv') {
         // Generate CSV content
         const headers = ['Control ID', 'Title', 'Status', 'NIST Reference', 'Findings'];
@@ -352,7 +352,7 @@ export default function ComplianceView() {
         ]);
         content = [headers.join(','), ...rows.map(r => r.map(cell => `"${cell}"`).join(','))].join('\n');
         fileExtension = 'csv';
-        mimeType = 'text/csv';
+        const _mimeType = 'text/csv';
       } else {
         // PDF - use the export API
         const result = await window.electronAPI?.export?.savePDF?.({
@@ -408,10 +408,10 @@ export default function ComplianceView() {
   };
 
   const filteredControls = joeControls.filter(control => {
-    if (filter === 'all') return true;
-    if (filter === 'compliant') return control.status === 'compliant';
-    if (filter === 'partial') return control.status === 'partially-compliant';
-    if (filter === 'non-compliant') return control.status === 'non-compliant';
+    if (filter === 'all') {return true;}
+    if (filter === 'compliant') {return control.status === 'compliant';}
+    if (filter === 'partial') {return control.status === 'partially-compliant';}
+    if (filter === 'non-compliant') {return control.status === 'non-compliant';}
     return true;
   });
 
@@ -1055,7 +1055,7 @@ ${control.notes}
                                 </p>
                               );
                             }
-                            if (line.trim() === '') return <div key={idx} className="h-2" />;
+                            if (line.trim() === '') {return <div key={idx} className="h-2" />;}
                             return <p key={idx} className="my-1 text-gray-300">{line}</p>;
                           })}
                         </div>

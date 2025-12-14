@@ -15,8 +15,8 @@ export default function ComplianceRing({ compliance }: ComplianceRingProps) {
   const scoreOffset = circumference - (score / 100) * circumference;
 
   const getScoreColor = () => {
-    if (score >= 80) return '#87C549';
-    if (score >= 60) return '#FFB000';
+    if (score >= 80) {return '#87C549';}
+    if (score >= 60) {return '#FFB000';}
     return '#FF3366';
   };
 

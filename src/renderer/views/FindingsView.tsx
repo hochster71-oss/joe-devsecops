@@ -674,7 +674,7 @@ export default function FindingsView() {
 
   // Apply the AI fix automatically
   const handleApplyFix = async () => {
-    if (!currentAiFix || !selectedFinding) return;
+    if (!currentAiFix || !selectedFinding) {return;}
 
     setIsApplyingFix(true);
     // Simulate applying the fix

@@ -151,7 +151,7 @@ class SBOMService {
         if (pkgPath.startsWith('node_modules/') && pkgPath !== '') {
           const name = pkgPath.replace('node_modules/', '').split('/node_modules/').pop() || '';
           if (name && !components.find(c => c.name === name)) {
-            const info = pkgInfo as any;
+            const info = pkgInfo as Record<string, unknown>;
             components.push({
               name,
               version: info.version || 'unknown',
@@ -305,7 +305,7 @@ class SBOMService {
           return [pkg.license];
         }
         if (pkg.licenses && Array.isArray(pkg.licenses)) {
-          return pkg.licenses.map((l: any) => l.type || l);
+          return pkg.licenses.map((l: { type?: string } | string) => (typeof l === 'string' ? l : l.type || 'UNKNOWN'));
         }
       }
     } catch {
@@ -333,7 +333,7 @@ class SBOMService {
       xml += `    <component type="${comp.type}">\n`;
       xml += `      <name>${comp.name}</name>\n`;
       xml += `      <version>${comp.version}</version>\n`;
-      if (comp.purl) xml += `      <purl>${comp.purl}</purl>\n`;
+      if (comp.purl) {xml += `      <purl>${comp.purl}</purl>\n`;}
       xml += '    </component>\n';
     }
     xml += '  </components>\n';

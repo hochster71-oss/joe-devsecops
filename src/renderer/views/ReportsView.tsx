@@ -19,8 +19,7 @@ import {
   FileCode,
   Printer,
   Mail,
-  ExternalLink,
-  FolderOpen
+  ExternalLink
 } from 'lucide-react';
 
 interface Report {

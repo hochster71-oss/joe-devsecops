@@ -131,7 +131,7 @@ class SpaceComplianceService {
       params.hazardAnalysis.propertyDamage
     );
 
-    const categoryInfo = NASA_SAFETY_CATEGORIES[category];
+    const _categoryInfo = NASA_SAFETY_CATEGORIES[category];
     const findings = this.evaluateNASACompliance(category, params.safetyMetrics, params.existingControls);
 
     const assessment: ComplianceAssessment = {
@@ -268,7 +268,7 @@ class SpaceComplianceService {
     verificationActivities: string[];
   }): AssessmentResult {
     const level = determineDO178CLevel(params.failureCondition);
-    const levelInfo = DO178C_LEVELS[level];
+    const _levelInfo = DO178C_LEVELS[level];
     const findings = this.evaluateDO178CCompliance(level, params.coverageMetrics, params.documentationStatus, params.verificationActivities);
 
     const assessment: ComplianceAssessment = {
@@ -428,7 +428,7 @@ class SpaceComplianceService {
     assuranceComponents: Record<string, 'satisfied' | 'partial' | 'not-satisfied'>;
     securityFunctions: string[];
   }): AssessmentResult {
-    const levelInfo = COMMON_CRITERIA_LEVELS[params.targetEAL];
+    const _levelInfo = COMMON_CRITERIA_LEVELS[params.targetEAL];
     const findings = this.evaluateCCCompliance(params.targetEAL, params.assuranceComponents);
 
     const assessment: ComplianceAssessment = {

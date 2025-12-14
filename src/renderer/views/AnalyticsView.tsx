@@ -24,8 +24,6 @@ import {
   CheckCircle,
   ChevronRight,
   Sparkles,
-  LineChart,
-  PieChart,
   Star,
   Eye,
   MousePointer,
@@ -34,7 +32,7 @@ import {
   ArrowDown,
   Minus
 } from 'lucide-react';
-import { useAnalyticsStore, SecurityPattern, LearningInsight } from '../store/analyticsStore';
+import { useAnalyticsStore } from '../store/analyticsStore';
 
 export default function AnalyticsView() {
   const {
@@ -55,7 +53,7 @@ export default function AnalyticsView() {
   } = useAnalyticsStore();
 
   const [activeTab, setActiveTab] = useState<'overview' | 'patterns' | 'learning'>('overview');
-  const [timeRange, setTimeRange] = useState<'24h' | '7d' | '30d' | 'all'>('7d');
+  const [_timeRange, _setTimeRange] = useState<'24h' | '7d' | '30d' | 'all'>('7d');
 
   // Initialize analytics on mount
   useEffect(() => {

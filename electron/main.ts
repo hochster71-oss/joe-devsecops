@@ -1,6 +1,11 @@
-import { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, dialog, shell, session, screen } from 'electron';
+import { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, dialog, shell } from 'electron';
 import fs from 'fs';
 import path from 'path';
+
+// Declare electron-forge vite plugin environment variables
+// These are injected by @electron-forge/plugin-vite at build time
+declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
+declare const MAIN_WINDOW_VITE_NAME: string;
 import crypto from 'crypto';
 import { securityScanner } from './security-scanner';
 import { kubernetesScanner } from './kubernetes-scanner';
@@ -101,7 +106,7 @@ const loginAttempts: Map<string, LoginAttempt> = new Map();
 
 function isAccountLocked(username: string): { locked: boolean; remainingTime?: number } {
   const attempts = loginAttempts.get(username.toLowerCase());
-  if (!attempts?.lockedUntil) return { locked: false };
+  if (!attempts?.lockedUntil) {return { locked: false };}
 
   const now = Date.now();
   if (now < attempts.lockedUntil) {
@@ -176,7 +181,7 @@ function createSession(username: string): SecureSession {
 }
 
 function validateSession(): boolean {
-  if (!activeSession) return false;
+  if (!activeSession) {return false;}
 
   const now = Date.now();
 
@@ -243,8 +248,10 @@ console.log('__dirname:', __dirname);
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 // This is only needed for Squirrel installer (optional)
+// Note: electron-squirrel-startup is optional and may not be installed
 try {
-  if (require('electron-squirrel-startup')) {
+  const electronSquirrelStartup = await import('electron-squirrel-startup');
+  if (electronSquirrelStartup.default) {
     app.quit();
   }
 } catch {
@@ -253,7 +260,7 @@ try {
 
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
-let isQuitting = false;
+let _isQuitting = false;
 
 // Check if running in development mode
 const isDev = !process.resourcesPath?.includes('app.asar');
@@ -269,7 +276,7 @@ function createWindow(): void {
     center: true, // Center window on screen
     title: 'J.O.E. DevSecOps Arsenal - Dark Wolf Solutions',
     icon: path.join(__dirname, '../../resources/icons/joe-icon.png'),
-    backgroundColor: '#1E1E1E', // Dark Wolf primary dark
+    backgroundColor: '#1E1E1E', // Dark Wolf theme background
     titleBarStyle: 'hidden',
     titleBarOverlay: {
       color: '#1E1E1E',
@@ -292,10 +299,16 @@ function createWindow(): void {
 
   // Show window when ready for smooth display
   mainWindow.once('ready-to-show', () => {
+    console.log('[J.O.E.] Window ready-to-show fired');
     // Set zoom factor to 1.5 for better readability on high-DPI displays
     mainWindow?.webContents.setZoomFactor(1.5);
     mainWindow?.show();
     mainWindow?.focus();
+    // Open DevTools in dev mode for debugging
+    if (isDev) {
+      console.log('[J.O.E.] Opening DevTools');
+      mainWindow?.webContents.openDevTools();
+    }
   });
 
   // SECURITY: Set Content Security Policy
@@ -339,19 +352,30 @@ function createWindow(): void {
     return { action: 'deny' };
   });
 
-  // Show window when ready to prevent visual flash
-  mainWindow.once('ready-to-show', () => {
-    mainWindow?.show();
-    if (isDev) {
-      mainWindow?.webContents.openDevTools();
-    }
+  // Handle page load failures
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+    console.error(`[J.O.E.] Failed to load: ${validatedURL}`);
+    console.error(`[J.O.E.] Error ${errorCode}: ${errorDescription}`);
+    // Show error in window
+    mainWindow?.webContents.executeJavaScript(`
+      document.body.innerHTML = '<div style="height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#8B0000;color:white;font-family:sans-serif;padding:20px;text-align:center;"><h1>Failed to Load J.O.E.</h1><p>Error ${errorCode}: ${errorDescription}</p><p>URL: ${validatedURL}</p><button onclick="location.reload()" style="margin-top:20px;padding:10px 20px;background:white;color:#8B0000;border:none;border-radius:8px;cursor:pointer;">Retry</button></div>';
+    `).catch(() => {});
   });
 
-  // Load the app
-  if (isDev) {
-    mainWindow.loadURL('http://localhost:5173');
+  // Handle successful page load
+  mainWindow.webContents.on('did-finish-load', () => {
+    console.log('[J.O.E.] Page loaded successfully');
+  });
+
+  // Load the app using electron-forge vite plugin URLs
+  // MAIN_WINDOW_VITE_DEV_SERVER_URL is set by @electron-forge/plugin-vite in dev
+  // MAIN_WINDOW_VITE_NAME is the renderer name from forge.config.ts
+  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+    console.log('[J.O.E.] Loading dev server:', MAIN_WINDOW_VITE_DEV_SERVER_URL);
+    mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../../dist/index.html'));
+    console.log('[J.O.E.] Loading production build');
+    mainWindow.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`));
   }
 
   // Handle window closed
@@ -369,7 +393,8 @@ function createWindow(): void {
   logSecurityEvent('APP_STARTED', undefined, true, `Version: ${app.getVersion()}`);
 }
 
-function createTray(): void {
+// eslint-disable-next-line @typescript-eslint/naming-convention
+function _createTray(): void {
   const iconPath = path.join(__dirname, '../../resources/icons/joe-tray.png');
   const icon = nativeImage.createFromPath(iconPath);
   tray = new Tray(icon.resize({ width: 16, height: 16 }));
@@ -398,7 +423,7 @@ function createTray(): void {
     {
       label: 'Quit J.O.E.',
       click: () => {
-        isQuitting = true;
+        _isQuitting = true;
         app.quit();
       }
     }
@@ -758,7 +783,7 @@ function validateDoDPassword(password: string, username: string, oldPassword: st
   }
 
   // At least 1 special character
-  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+  if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)) {
     errors.push('1 special character (!@#$%^&*...)');
   }
 
@@ -1031,7 +1056,7 @@ ipcMain.handle('security-auto-fix', async (_, findings?: Array<{
 }>) => {
   console.log('[J.O.E. IPC] Running AI-powered auto-fix...', findings?.length ? `${findings.length} findings` : 'full scan');
   try {
-    const results = await securityScanner.autoFix(findings as any);
+    const results = await securityScanner.autoFix(findings as unknown as Parameters<typeof securityScanner.autoFix>[0]);
     console.log('[J.O.E. IPC] Auto-fix complete:', {
       fixed: results.fixed.length,
       failed: results.failed.length,
@@ -1058,7 +1083,7 @@ ipcMain.handle('security-generate-poam', async (_, findings: Array<{
 }>) => {
   console.log('[J.O.E. IPC] Generating POAM for', findings.length, 'findings...');
   try {
-    const poam = await securityScanner.generatePoam(findings as any);
+    const poam = await securityScanner.generatePoam(findings as unknown as Parameters<typeof securityScanner.generatePoam>[0]);
     console.log('[J.O.E. IPC] POAM generated:', poam.poamId, '-', poam.items.length, 'items');
     return poam;
   } catch (error) {
@@ -1133,7 +1158,7 @@ ipcMain.handle('security-eslint-scan', async () => {
 });
 
 // Generate SARIF report
-ipcMain.handle('security-generate-sarif', async (_, findings: any[]) => {
+ipcMain.handle('security-generate-sarif', async (_, findings: unknown[]) => {
   console.log('[J.O.E. IPC] Generating SARIF report...');
   try {
     const sarif = await securityScanner.generateSARIF(findings);
@@ -1189,7 +1214,7 @@ ipcMain.on('ollama-stream-start', async (event, message: string, context?: strin
 
   try {
     for await (const chunk of ollamaService.streamChat(message, context)) {
-      if (streamAbortController?.signal.aborted) break;
+      if (streamAbortController?.signal.aborted) {break;}
       event.sender.send('ollama-stream-chunk', chunk);
     }
     event.sender.send('ollama-stream-end');
@@ -1798,7 +1823,7 @@ ipcMain.handle('sbom-generate', async (_, projectPath: string) => {
 });
 
 // Analyze SBOM
-ipcMain.handle('sbom-analyze', async (_, sbom: any) => {
+ipcMain.handle('sbom-analyze', async (_, sbom: unknown) => {
   console.log('[J.O.E. SBOM] Analyzing SBOM...');
   logSecurityEvent('SBOM_ANALYZE', activeSession?.username, true, `Components: ${sbom.components?.length || 0}`);
 
@@ -1817,7 +1842,7 @@ ipcMain.handle('sbom-analyze', async (_, sbom: any) => {
 });
 
 // Export SBOM
-ipcMain.handle('sbom-export', async (_, sbom: any, format: 'json' | 'xml', outputPath: string) => {
+ipcMain.handle('sbom-export', async (_, sbom: unknown, format: 'json' | 'xml', outputPath: string) => {
   console.log('[J.O.E. SBOM] Exporting SBOM to:', outputPath);
   logSecurityEvent('SBOM_EXPORT', activeSession?.username, true, `Format: ${format}, Path: ${outputPath}`);
 
@@ -1837,7 +1862,7 @@ ipcMain.handle('sbom-export', async (_, sbom: any, format: 'json' | 'xml', outpu
 // ========================================
 
 // Scan directory for secrets
-ipcMain.handle('secrets-scan-directory', async (_, dirPath: string, options?: any) => {
+ipcMain.handle('secrets-scan-directory', async (_, dirPath: string, options?: Record<string, unknown>) => {
   console.log('[J.O.E. SecretScanner] Scanning directory:', dirPath);
   logSecurityEvent('SECRET_SCAN_START', activeSession?.username, true, `Path: ${dirPath}`);
 
@@ -1963,7 +1988,7 @@ ipcMain.handle('vault-lock', async () => {
 });
 
 // Add secret to vault
-ipcMain.handle('vault-add-secret', async (_, name: string, value: string, type: string, metadata?: any) => {
+ipcMain.handle('vault-add-secret', async (_, name: string, value: string, type: string, metadata?: Record<string, unknown>) => {
   console.log('[J.O.E. Vault] Adding secret:', name);
   logSecurityEvent('VAULT_ADD_SECRET', activeSession?.username, true, `Type: ${type}`);
 
@@ -2079,7 +2104,6 @@ ipcMain.handle('vault-export', async () => {
     });
 
     if (!result.canceled && result.filePath) {
-      const fs = require('fs');
       fs.writeFileSync(result.filePath, vaultData);
       logSecurityEvent('VAULT_EXPORTED', activeSession?.username, true, `Path: ${result.filePath}`);
       return { success: true, path: result.filePath };
@@ -2099,7 +2123,7 @@ ipcMain.handle('vault-export', async () => {
 // ========================================
 
 // AI Touchpoint query (tooltip/panel)
-ipcMain.handle('ai-touchpoint-query', async (_, context: any) => {
+ipcMain.handle('ai-touchpoint-query', async (_, context: Record<string, unknown>) => {
   console.log('[J.O.E. AI Touchpoint] Query for:', context.elementType);
   logSecurityEvent('AI_TOUCHPOINT_QUERY', activeSession?.username, true, `Type: ${context.elementType}`);
 
@@ -2114,7 +2138,7 @@ ipcMain.handle('ai-touchpoint-query', async (_, context: any) => {
 });
 
 // AI Touchpoint streaming query
-ipcMain.handle('ai-touchpoint-stream', async (_, context: any) => {
+ipcMain.handle('ai-touchpoint-stream', async (_, context: Record<string, unknown>) => {
   console.log('[J.O.E. AI Touchpoint] Streaming query for:', context.elementType);
   logSecurityEvent('AI_TOUCHPOINT_STREAM', activeSession?.username, true, `Type: ${context.elementType}`);
 
@@ -2132,12 +2156,12 @@ ipcMain.handle('ai-touchpoint-stream', async (_, context: any) => {
 });
 
 // Analyze metric for dashboard touchpoints
-ipcMain.handle('ai-touchpoint-analyze-metric', async (_, params: { metricName: string; value: number; trend: string; context?: any }) => {
+ipcMain.handle('ai-touchpoint-analyze-metric', async (_, params: { metricName: string; value: number; trend: string; context?: Record<string, unknown> }) => {
   console.log('[J.O.E. AI Touchpoint] Analyzing metric:', params.metricName);
   logSecurityEvent('AI_METRIC_ANALYSIS', activeSession?.username, true, `Metric: ${params.metricName}`);
 
   try {
-    const response = await ollamaService.analyzeMetric(params.metricName, params.value, params.trend as any, params.context);
+    const response = await ollamaService.analyzeMetric(params.metricName, params.value, params.trend as unknown as Parameters<typeof ollamaService.analyzeMetric>[2], params.context);
     return response;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Metric analysis failed';
@@ -2147,7 +2171,7 @@ ipcMain.handle('ai-touchpoint-analyze-metric', async (_, params: { metricName: s
 });
 
 // Generate attack path diagram
-ipcMain.handle('ai-touchpoint-generate-attack-path', async (_, finding: any) => {
+ipcMain.handle('ai-touchpoint-generate-attack-path', async (_, finding: Record<string, unknown>) => {
   console.log('[J.O.E. AI Touchpoint] Generating attack path for:', finding.id || 'finding');
   logSecurityEvent('AI_ATTACK_PATH', activeSession?.username, true, `Finding: ${finding.id || 'unknown'}`);
 
@@ -2201,7 +2225,7 @@ ipcMain.handle('analytics-track', async (_, event: {
     }
 
     const id = analyticsService.track({
-      type: event.type as any,
+      type: event.type as unknown as Parameters<typeof analyticsService.track>[0]['type'],
       elementType: event.elementType,
       elementId: event.elementId,
       durationMs: event.durationMs,
@@ -2504,10 +2528,10 @@ ipcMain.handle('notification-send', async (_, payload: {
   message: string;
   severity: string;
   channels: string[];
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }) => {
   try {
-    const results = await notificationService.sendNotification(payload as any);
+    const results = await notificationService.sendNotification(payload as unknown as Parameters<typeof notificationService.sendNotification>[0]);
     logSecurityEvent('NOTIFICATION_SENT', activeSession?.username, true,
       `Channels: ${payload.channels.join(', ')}, Severity: ${payload.severity}`);
     return { success: true, results };
@@ -2519,9 +2543,9 @@ ipcMain.handle('notification-send', async (_, payload: {
 });
 
 // Configure channel
-ipcMain.handle('notification-configure-channel', async (_, channel: string, config: any) => {
+ipcMain.handle('notification-configure-channel', async (_, channel: string, config: Record<string, unknown>) => {
   try {
-    notificationService.configureChannel(channel as any, config);
+    notificationService.configureChannel(channel, config);
     logSecurityEvent('NOTIFICATION_CHANNEL_CONFIGURED', activeSession?.username, true, `Channel: ${channel}`);
     return { success: true };
   } catch (error) {
@@ -2534,7 +2558,7 @@ ipcMain.handle('notification-configure-channel', async (_, channel: string, conf
 // Get channel config
 ipcMain.handle('notification-get-channel-config', async (_, channel: string) => {
   try {
-    return notificationService.getChannelConfig(channel as any);
+    return notificationService.getChannelConfig(channel as unknown as Parameters<typeof notificationService.getChannelConfig>[0]);
   } catch (error) {
     console.error('[J.O.E. Notifications] Get config error:', error);
     return null;
@@ -2544,7 +2568,7 @@ ipcMain.handle('notification-get-channel-config', async (_, channel: string) => 
 // Test channel
 ipcMain.handle('notification-test-channel', async (_, channel: string) => {
   try {
-    const result = await notificationService.testChannel(channel as any);
+    const result = await notificationService.testChannel(channel as unknown as Parameters<typeof notificationService.testChannel>[0]);
     return result;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Test failed';
@@ -2553,7 +2577,7 @@ ipcMain.handle('notification-test-channel', async (_, channel: string) => {
 });
 
 // Add alert rule
-ipcMain.handle('notification-add-rule', async (_, rule: any) => {
+ipcMain.handle('notification-add-rule', async (_, rule: Record<string, unknown>) => {
   try {
     const ruleId = notificationService.addAlertRule(rule);
     logSecurityEvent('ALERT_RULE_ADDED', activeSession?.username, true, `Rule: ${rule.name}`);
@@ -2585,7 +2609,7 @@ ipcMain.handle('notification-get-rules', async () => {
 });
 
 // Process security finding
-ipcMain.handle('notification-process-finding', async (_, finding: any) => {
+ipcMain.handle('notification-process-finding', async (_, finding: Record<string, unknown>) => {
   try {
     await notificationService.processSecurityFinding(finding);
     return { success: true };
@@ -2644,7 +2668,7 @@ ipcMain.handle('iac-get-supported-types', async () => {
 // Get rules for specific IaC type
 ipcMain.handle('iac-get-rules', async (_, iacType?: string) => {
   try {
-    return iacScanner.getRules(iacType as any);
+    return iacScanner.getRules(iacType as unknown as Parameters<typeof iacScanner.getRules>[0]);
   } catch (error) {
     return [];
   }
@@ -2713,9 +2737,9 @@ ipcMain.handle('api-security-get-rules', async () => {
 // ========================================
 
 // Configure SIEM platform
-ipcMain.handle('siem-configure', async (_, platform: string, config: any) => {
+ipcMain.handle('siem-configure', async (_, platform: string, config: Record<string, unknown>) => {
   try {
-    siemConnector.configure(platform as any, config);
+    siemConnector.configure(platform, config);
     logSecurityEvent('SIEM_CONFIGURED', activeSession?.username, true, `Platform: ${platform}`);
     return { success: true };
   } catch (error) {
@@ -2727,7 +2751,7 @@ ipcMain.handle('siem-configure', async (_, platform: string, config: any) => {
 // Get SIEM config
 ipcMain.handle('siem-get-config', async (_, platform: string) => {
   try {
-    return siemConnector.getConfig(platform as any);
+    return siemConnector.getConfig(platform as unknown as Parameters<typeof siemConnector.getConfig>[0]);
   } catch (error) {
     return null;
   }
@@ -2736,7 +2760,7 @@ ipcMain.handle('siem-get-config', async (_, platform: string) => {
 // Test SIEM connection
 ipcMain.handle('siem-test-connection', async (_, platform: string) => {
   try {
-    const result = await siemConnector.testConnection(platform as any);
+    const result = await siemConnector.testConnection(platform as unknown as Parameters<typeof siemConnector.testConnection>[0]);
     return result;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Test failed';
@@ -2745,9 +2769,9 @@ ipcMain.handle('siem-test-connection', async (_, platform: string) => {
 });
 
 // Send security event to SIEM
-ipcMain.handle('siem-send-event', async (_, platform: string, event: any) => {
+ipcMain.handle('siem-send-event', async (_, platform: string, event: Record<string, unknown>) => {
   try {
-    await siemConnector.sendEvent(platform as any, event);
+    await siemConnector.sendEvent(platform, event);
     return { success: true };
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Send event failed';
@@ -2756,9 +2780,9 @@ ipcMain.handle('siem-send-event', async (_, platform: string, event: any) => {
 });
 
 // Send batch events
-ipcMain.handle('siem-send-batch', async (_, platform: string, events: any[]) => {
+ipcMain.handle('siem-send-batch', async (_, platform: string, events: unknown[]) => {
   try {
-    await siemConnector.sendBatch(platform as any, events);
+    await siemConnector.sendBatch(platform, events);
     logSecurityEvent('SIEM_BATCH_SENT', activeSession?.username, true,
       `Platform: ${platform}, Events: ${events.length}`);
     return { success: true };
@@ -2769,9 +2793,9 @@ ipcMain.handle('siem-send-batch', async (_, platform: string, events: any[]) => 
 });
 
 // Export findings to SIEM
-ipcMain.handle('siem-export-findings', async (_, platform: string, findings: any[]) => {
+ipcMain.handle('siem-export-findings', async (_, platform: string, findings: unknown[]) => {
   try {
-    await siemConnector.exportFindings(platform as any, findings);
+    await siemConnector.exportFindings(platform, findings);
     logSecurityEvent('SIEM_FINDINGS_EXPORTED', activeSession?.username, true,
       `Platform: ${platform}, Findings: ${findings.length}`);
     return { success: true };
@@ -2791,9 +2815,9 @@ ipcMain.handle('siem-get-platforms', async () => {
 // ========================================
 
 // Configure ticketing platform
-ipcMain.handle('ticketing-configure', async (_, platform: string, config: any) => {
+ipcMain.handle('ticketing-configure', async (_, platform: string, config: Record<string, unknown>) => {
   try {
-    ticketingService.configure(platform as any, config);
+    ticketingService.configure(platform, config);
     logSecurityEvent('TICKETING_CONFIGURED', activeSession?.username, true, `Platform: ${platform}`);
     return { success: true };
   } catch (error) {
@@ -2805,7 +2829,7 @@ ipcMain.handle('ticketing-configure', async (_, platform: string, config: any) =
 // Get ticketing config
 ipcMain.handle('ticketing-get-config', async (_, platform: string) => {
   try {
-    return ticketingService.getConfig(platform as any);
+    return ticketingService.getConfig(platform as unknown as Parameters<typeof ticketingService.getConfig>[0]);
   } catch (error) {
     return null;
   }
@@ -2814,7 +2838,7 @@ ipcMain.handle('ticketing-get-config', async (_, platform: string) => {
 // Test ticketing connection
 ipcMain.handle('ticketing-test-connection', async (_, platform: string) => {
   try {
-    const result = await ticketingService.testConnection(platform as any);
+    const result = await ticketingService.testConnection(platform as unknown as Parameters<typeof ticketingService.testConnection>[0]);
     return result;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Test failed';
@@ -2823,9 +2847,9 @@ ipcMain.handle('ticketing-test-connection', async (_, platform: string) => {
 });
 
 // Create ticket from finding
-ipcMain.handle('ticketing-create-ticket', async (_, platform: string, finding: any) => {
+ipcMain.handle('ticketing-create-ticket', async (_, platform: string, finding: Record<string, unknown>) => {
   try {
-    const ticket = await ticketingService.createTicket(platform as any, finding);
+    const ticket = await ticketingService.createTicket(platform, finding);
     logSecurityEvent('TICKET_CREATED', activeSession?.username, true,
       `Platform: ${platform}, Ticket: ${ticket.ticketId}`);
     return { success: true, ticket };
@@ -2836,9 +2860,9 @@ ipcMain.handle('ticketing-create-ticket', async (_, platform: string, finding: a
 });
 
 // Create bulk tickets
-ipcMain.handle('ticketing-create-bulk', async (_, platform: string, findings: any[]) => {
+ipcMain.handle('ticketing-create-bulk', async (_, platform: string, findings: unknown[]) => {
   try {
-    const tickets = await ticketingService.createBulkTickets(platform as any, findings);
+    const tickets = await ticketingService.createBulkTickets(platform, findings);
     logSecurityEvent('BULK_TICKETS_CREATED', activeSession?.username, true,
       `Platform: ${platform}, Tickets: ${tickets.length}`);
     return { success: true, tickets };
@@ -2851,7 +2875,7 @@ ipcMain.handle('ticketing-create-bulk', async (_, platform: string, findings: an
 // Update ticket status
 ipcMain.handle('ticketing-update-status', async (_, platform: string, ticketId: string, status: string, comment?: string) => {
   try {
-    await ticketingService.updateTicketStatus(platform as any, ticketId, status, comment);
+    await ticketingService.updateTicketStatus(platform as unknown as Parameters<typeof ticketingService.updateTicketStatus>[0], ticketId, status, comment);
     return { success: true };
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Status update failed';
@@ -2862,7 +2886,7 @@ ipcMain.handle('ticketing-update-status', async (_, platform: string, ticketId: 
 // Get ticket
 ipcMain.handle('ticketing-get-ticket', async (_, platform: string, ticketId: string) => {
   try {
-    const ticket = await ticketingService.getTicket(platform as any, ticketId);
+    const ticket = await ticketingService.getTicket(platform as unknown as Parameters<typeof ticketingService.getTicket>[0], ticketId);
     return { success: true, ticket };
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Get ticket failed';
@@ -2873,7 +2897,7 @@ ipcMain.handle('ticketing-get-ticket', async (_, platform: string, ticketId: str
 // Sync ticket status
 ipcMain.handle('ticketing-sync-status', async (_, platform: string, ticketId: string) => {
   try {
-    const status = await ticketingService.syncTicketStatus(platform as any, ticketId);
+    const status = await ticketingService.syncTicketStatus(platform as unknown as Parameters<typeof ticketingService.syncTicketStatus>[0], ticketId);
     return { success: true, status };
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Sync failed';

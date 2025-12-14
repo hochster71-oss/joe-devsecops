@@ -53,7 +53,7 @@ class OllamaService {
   async getModels(): Promise<string[]> {
     try {
       const response = await fetch(`${OLLAMA_BASE_URL}/api/tags`);
-      if (!response.ok) throw new Error('Failed to fetch models');
+      if (!response.ok) {throw new Error('Failed to fetch models');}
 
       const data = await response.json();
       return data.models?.map((m: OllamaModel) => m.name) || [];
@@ -170,13 +170,13 @@ class OllamaService {
       }
 
       const reader = response.body?.getReader();
-      if (!reader) throw new Error('No response body');
+      if (!reader) {throw new Error('No response body');}
 
       const decoder = new TextDecoder();
 
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+        if (done) {break;}
 
         const chunk = decoder.decode(value, { stream: true });
         const lines = chunk.split('\n').filter(line => line.trim());
@@ -599,7 +599,7 @@ Respond ONLY with valid JSON.`;
     elementType: string,
     data: Record<string, unknown>,
     frameworks: string[],
-    depth: 'tooltip' | 'panel' | 'deepdive'
+    _depth: 'tooltip' | 'panel' | 'deepdive'
   ): AsyncGenerator<{ type: string; content: string }, void, unknown> {
     const prompt = `Analyze this ${elementType} for security implications.
 Data: ${JSON.stringify(data)}
@@ -623,7 +623,7 @@ Use markdown formatting.`;
    */
   private parseUnstructuredResponse(
     response: string,
-    frameworks: string[]
+    _frameworks: string[]
   ): {
     summary: string;
     detailedAnalysis: string;

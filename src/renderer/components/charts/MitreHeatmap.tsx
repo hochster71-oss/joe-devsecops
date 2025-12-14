@@ -96,9 +96,9 @@ export default function MitreHeatmap({ onTechniqueClick }: MitreHeatmapProps) {
   const [selectedTactic, setSelectedTactic] = useState<TacticData | null>(null);
 
   const getCoverageColor = (coverage: number) => {
-    if (coverage >= 80) return 'bg-dws-green';
-    if (coverage >= 60) return 'bg-joe-blue';
-    if (coverage >= 40) return 'bg-alert-warning';
+    if (coverage >= 80) {return 'bg-dws-green';}
+    if (coverage >= 60) {return 'bg-joe-blue';}
+    if (coverage >= 40) {return 'bg-alert-warning';}
     return 'bg-alert-critical';
   };
 

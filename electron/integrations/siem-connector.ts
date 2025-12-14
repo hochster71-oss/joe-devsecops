@@ -176,7 +176,7 @@ class SIEMConnector {
     const configs = this.getConfigs();
     const index = configs.findIndex(c => c.platform === platform);
 
-    if (index === -1) return null;
+    if (index === -1) {return null;}
 
     configs[index] = { ...configs[index], ...updates, platform };
     this.store.set('siemConfigs', configs);
@@ -277,7 +277,7 @@ class SIEMConnector {
 
   private async flushBuffer(platform: SIEMPlatform): Promise<void> {
     const buffer = this.eventBuffer.get(platform)!;
-    if (buffer.length === 0) return;
+    if (buffer.length === 0) {return;}
 
     const events = [...buffer];
     this.eventBuffer.set(platform, []);
@@ -291,7 +291,7 @@ class SIEMConnector {
     this.stopFlushTimer(platform);
 
     const config = this.getConfig(platform);
-    if (!config) return;
+    if (!config) {return;}
 
     const timer = setInterval(() => {
       this.flushBuffer(platform);

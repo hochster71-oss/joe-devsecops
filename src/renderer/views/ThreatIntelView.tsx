@@ -17,7 +17,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShieldAlert,
   Shield,
-  ShieldCheck,
   AlertTriangle,
   AlertOctagon,
   Search,
@@ -42,7 +41,7 @@ import { useThreatIntelStore, getFilteredResults, getTopVendors, KEVEntry, Threa
 
 export default function ThreatIntelView() {
   const {
-    kevCatalog,
+    kevCatalog: _kevCatalog,
     kevStats,
     analysisResults,
     searchResults,
@@ -60,7 +59,7 @@ export default function ThreatIntelView() {
     searchKEV,
     analyzeCVE,
     analyzeCVEsBatch,
-    clearCache,
+    clearCache: _clearCache,
     setSearchQuery,
     setFilterRating,
     setFilterKEV,
@@ -119,7 +118,7 @@ export default function ThreatIntelView() {
   };
 
   // Priority badge colors
-  const getPriorityColor = (rating: string) => {
+  const _getPriorityColor = (rating: string) => {
     switch (rating) {
       case 'CRITICAL': return 'bg-red-500/20 text-red-400 border-red-500/30';
       case 'HIGH': return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
@@ -129,7 +128,7 @@ export default function ThreatIntelView() {
     }
   };
 
-  const getPriorityIcon = (rating: string) => {
+  const _getPriorityIcon = (rating: string) => {
     switch (rating) {
       case 'CRITICAL': return <AlertOctagon className="w-4 h-4" />;
       case 'HIGH': return <AlertTriangle className="w-4 h-4" />;
@@ -320,6 +319,7 @@ export default function ThreatIntelView() {
                 >
                   <select
                     value={filterRating}
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     onChange={(e) => setFilterRating(e.target.value as any)}
                     className="px-3 py-2 bg-dws-darker border border-dws-border rounded text-sm text-white"
                   >
@@ -340,6 +340,7 @@ export default function ThreatIntelView() {
                   </label>
                   <select
                     value={sortBy}
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     onChange={(e) => setSortBy(e.target.value as any)}
                     className="px-3 py-2 bg-dws-darker border border-dws-border rounded text-sm text-white"
                   >

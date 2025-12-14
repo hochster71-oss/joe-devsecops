@@ -282,7 +282,7 @@ export const useAuthStore = create<AuthState>()(
 
       setupPin: (pin: string) => {
         const currentUser = get().user;
-        if (!currentUser) return;
+        if (!currentUser) {return;}
 
         // Store PIN data
         const pinData: PinAuthData = {

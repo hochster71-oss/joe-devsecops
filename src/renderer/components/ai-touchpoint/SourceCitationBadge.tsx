@@ -8,7 +8,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ExternalLink, Copy, Check, Info } from 'lucide-react';
+import { ExternalLink, Copy, Check } from 'lucide-react';
 import type { Citation, Framework } from '../../../types/ai-touchpoint';
 import { FRAMEWORK_METADATA, getFrameworkColor } from '../../../core/security-frameworks';
 

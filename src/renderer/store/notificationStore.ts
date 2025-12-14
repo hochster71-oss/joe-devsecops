@@ -121,7 +121,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const history = await window.electronAPI?.notifications?.getHistory?.() || [];
-      const notifications = history.map((h: { payload: NotificationPayload }) => ({
+      const notifications = (history as Array<{ payload: NotificationPayload }>).map((h) => ({
         ...h.payload,
         read: false
       }));
@@ -191,7 +191,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const rules = await window.electronAPI?.notifications?.getAlertRules?.() || [];
-      set({ alertRules: rules, isLoading: false });
+      set({ alertRules: rules as AlertRule[], isLoading: false });
     } catch (error) {
       set({ error: String(error), isLoading: false });
     }
@@ -310,21 +310,4 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   }
 }));
 
-// Extend window.electronAPI types
-declare global {
-  interface Window {
-    electronAPI?: {
-      notifications?: {
-        getHistory: () => Promise<Array<{ payload: NotificationPayload }>>;
-        getAlertRules: () => Promise<AlertRule[]>;
-        createAlertRule: (rule: AlertRule) => Promise<void>;
-        updateAlertRule: (id: string, updates: Partial<AlertRule>) => Promise<void>;
-        deleteAlertRule: (id: string) => Promise<void>;
-        getChannelConfig: () => Promise<ChannelConfig>;
-        updateChannelConfig: (channel: NotificationChannel, config: unknown) => Promise<void>;
-        testChannel: (channel: NotificationChannel) => Promise<{ success: boolean; error?: string }>;
-        send: (payload: unknown) => Promise<void>;
-      };
-    };
-  }
-}
+// Type declarations consolidated in src/types/electron.d.ts

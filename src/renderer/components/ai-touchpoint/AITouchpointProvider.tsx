@@ -37,6 +37,7 @@ import type {
 // Type-safe access to getElectronAPI()
 // =============================================================================
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const getElectronAPI = (): any => (window as any).electronAPI;
 
 // =============================================================================
@@ -311,7 +312,7 @@ export const AITouchpointProvider: React.FC<AITouchpointProviderProps> = ({
   const queryTooltip = useCallback(async (context: TouchpointContext): Promise<AITouchpointResponse> => {
     const cacheKey = generateCacheKey(context);
     const cached = getCachedResponse(cacheKey);
-    if (cached) return cached;
+    if (cached) {return cached;}
 
     dispatch({ type: 'ADD_LOADING', payload: context.elementId });
 
@@ -362,6 +363,7 @@ export const AITouchpointProvider: React.FC<AITouchpointProviderProps> = ({
 
   const streamQuery = useCallback((context: TouchpointContext): AIStreamController => {
     const callbacks = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       onChunk: [] as Array<(chunk: any) => void>,
       onComplete: [] as Array<(response: AITouchpointResponse) => void>,
       onError: [] as Array<(error: Error) => void>
@@ -391,7 +393,7 @@ export const AITouchpointProvider: React.FC<AITouchpointProviderProps> = ({
           const response = await queryTooltip(context);
           const words = response.detailedAnalysis.split(' ');
           for (let i = 0; i < words.length; i++) {
-            if (abortController.signal.aborted) break;
+            if (abortController.signal.aborted) {break;}
             if (!isPaused) {
               callbacks.onChunk.forEach(cb => cb({
                 type: 'analysis',
@@ -474,7 +476,7 @@ export const AITouchpointProvider: React.FC<AITouchpointProviderProps> = ({
   // ==========================================================================
 
   const trackInteraction = useCallback((interaction: Omit<UserInteraction, 'id' | 'timestamp'>) => {
-    if (!state.settings.analyticsEnabled) return;
+    if (!state.settings.analyticsEnabled) {return;}
 
     const fullInteraction: UserInteraction = {
       ...interaction,
@@ -649,17 +651,17 @@ const parseRawResponse = (
 
 const detectFramework = (text: string): Framework => {
   const lower = text.toLowerCase();
-  if (lower.includes('nist') && lower.includes('csf')) return 'NIST-CSF-2.0';
-  if (lower.includes('nist') && lower.includes('800-53')) return 'NIST-800-53';
-  if (lower.includes('nist') && lower.includes('800-171')) return 'NIST-800-171';
-  if (lower.includes('mitre') && lower.includes('attack')) return 'MITRE-ATTACK';
-  if (lower.includes('mitre') && lower.includes('defend')) return 'MITRE-DEFEND';
-  if (lower.includes('cis')) return 'CIS-CONTROLS';
-  if (lower.includes('owasp') && lower.includes('top')) return 'OWASP-TOP-10';
-  if (lower.includes('owasp') && lower.includes('asvs')) return 'OWASP-ASVS';
-  if (lower.includes('nasa')) return 'NASA-STD-8719';
-  if (lower.includes('do-178')) return 'DO-178C';
-  if (lower.includes('cmmc')) return 'CMMC-2.0';
+  if (lower.includes('nist') && lower.includes('csf')) {return 'NIST-CSF-2.0';}
+  if (lower.includes('nist') && lower.includes('800-53')) {return 'NIST-800-53';}
+  if (lower.includes('nist') && lower.includes('800-171')) {return 'NIST-800-171';}
+  if (lower.includes('mitre') && lower.includes('attack')) {return 'MITRE-ATTACK';}
+  if (lower.includes('mitre') && lower.includes('defend')) {return 'MITRE-DEFEND';}
+  if (lower.includes('cis')) {return 'CIS-CONTROLS';}
+  if (lower.includes('owasp') && lower.includes('top')) {return 'OWASP-TOP-10';}
+  if (lower.includes('owasp') && lower.includes('asvs')) {return 'OWASP-ASVS';}
+  if (lower.includes('nasa')) {return 'NASA-STD-8719';}
+  if (lower.includes('do-178')) {return 'DO-178C';}
+  if (lower.includes('cmmc')) {return 'CMMC-2.0';}
   return 'NIST-800-53';
 };
 
@@ -673,29 +675,29 @@ const extractControlId = (text: string): string => {
 
   for (const pattern of patterns) {
     const match = text.match(pattern);
-    if (match) return match[1];
+    if (match) {return match[1];}
   }
   return '';
 };
 
 const buildFrameworkUrl = (framework: Framework, controlId: string): string => {
   const urlBuilders: Record<Framework, (id: string) => string> = {
-    'NIST-CSF-2.0': (id) => `https://www.nist.gov/cyberframework/csf-20/${id}`,
-    'NIST-800-53': (id) => `https://csrc.nist.gov/Projects/cprt/catalog#/cprt/framework/version/SP_800_53_5_1_0/home?element=${id}`,
-    'NIST-800-171': (id) => `https://csrc.nist.gov/publications/detail/sp/800-171/rev-2/final#${id}`,
-    'MITRE-ATTACK': (id) => `https://attack.mitre.org/techniques/${id}`,
-    'MITRE-DEFEND': (id) => `https://d3fend.mitre.org/technique/${id}`,
-    'CIS-CONTROLS': (id) => `https://www.cisecurity.org/controls/v8`,
-    'OWASP-TOP-10': (id) => `https://owasp.org/Top10/${id}`,
-    'OWASP-ASVS': (id) => `https://owasp.org/www-project-application-security-verification-standard`,
-    'OWASP-SAMM': (id) => `https://owaspsamm.org/model/${id}`,
-    'NASA-STD-8719': (id) => `https://standards.nasa.gov/standard/NASA/NASA-STD-871913`,
-    'DO-178C': (id) => `https://www.rtca.org/content/do-178c`,
-    'CMMC-2.0': (id) => `https://dodcio.defense.gov/CMMC/Model/`,
-    'COMMON-CRITERIA': (id) => `https://www.commoncriteriaportal.org`,
-    'ISO-27001': (id) => `https://www.iso.org/standard/27001`,
-    'SOC-2': (id) => `https://www.aicpa.org/soc2`,
-    'SLSA': (id) => `https://slsa.dev/spec/v1.0/levels`
+    'NIST-CSF-2.0': (_id) => `https://www.nist.gov/cyberframework/csf-20/${_id}`,
+    'NIST-800-53': (_id) => `https://csrc.nist.gov/Projects/cprt/catalog#/cprt/framework/version/SP_800_53_5_1_0/home?element=${_id}`,
+    'NIST-800-171': (_id) => `https://csrc.nist.gov/publications/detail/sp/800-171/rev-2/final#${_id}`,
+    'MITRE-ATTACK': (_id) => `https://attack.mitre.org/techniques/${_id}`,
+    'MITRE-DEFEND': (_id) => `https://d3fend.mitre.org/technique/${_id}`,
+    'CIS-CONTROLS': (_id) => `https://www.cisecurity.org/controls/v8`,
+    'OWASP-TOP-10': (_id) => `https://owasp.org/Top10/${_id}`,
+    'OWASP-ASVS': (_id) => `https://owasp.org/www-project-application-security-verification-standard`,
+    'OWASP-SAMM': (_id) => `https://owaspsamm.org/model/${_id}`,
+    'NASA-STD-8719': (_id) => `https://standards.nasa.gov/standard/NASA/NASA-STD-871913`,
+    'DO-178C': (_id) => `https://www.rtca.org/content/do-178c`,
+    'CMMC-2.0': (_id) => `https://dodcio.defense.gov/CMMC/Model/`,
+    'COMMON-CRITERIA': (_id) => `https://www.commoncriteriaportal.org`,
+    'ISO-27001': (_id) => `https://www.iso.org/standard/27001`,
+    'SOC-2': (_id) => `https://www.aicpa.org/soc2`,
+    'SLSA': (_id) => `https://slsa.dev/spec/v1.0/levels`
   };
 
   return urlBuilders[framework]?.(controlId) ?? '';

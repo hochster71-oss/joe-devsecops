@@ -275,7 +275,7 @@ export const useGitLabStore = create<GitLabState>((set, get) => ({
 
   // Load projects
   loadProjects: async (search?: string) => {
-    if (!get().connected) return;
+    if (!get().connected) {return;}
 
     set({ loadingProjects: true });
 
@@ -326,10 +326,10 @@ export const useGitLabStore = create<GitLabState>((set, get) => ({
       const dependencyVulnCount = results.dependencyVulnerabilities.reduce(
         (acc: { critical: number; high: number; medium: number; low: number }, v: { severity: string }) => {
           const sev = v.severity.toLowerCase();
-          if (sev === 'critical') acc.critical++;
-          else if (sev === 'high') acc.high++;
-          else if (sev === 'medium') acc.medium++;
-          else acc.low++;
+          if (sev === 'critical') {acc.critical++;}
+          else if (sev === 'high') {acc.high++;}
+          else if (sev === 'medium') {acc.medium++;}
+          else {acc.low++;}
           return acc;
         },
         { critical: 0, high: 0, medium: 0, low: 0 }

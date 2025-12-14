@@ -80,13 +80,13 @@ const TERRAFORM_RULES: IaCRuleSet[] = [
       const lines = content.split('\n');
       let inS3Bucket = false;
       let resourceName = '';
-      let startLine = 0;
+      let _startLine = 0;
 
       lines.forEach((line, idx) => {
         if (line.includes('resource "aws_s3_bucket"')) {
           inS3Bucket = true;
           resourceName = line.match(/"([^"]+)"\s*{/)?.[1] || 'unknown';
-          startLine = idx + 1;
+          _startLine = idx + 1;
         }
         if (inS3Bucket && line.includes('acl') && (line.includes('"public-read"') || line.includes('"public-read-write"'))) {
           findings.push({
@@ -933,7 +933,7 @@ class IaCScanner {
   }
 
   async scanDirectory(dirPath: string): Promise<IaCScanResult> {
-    const startTime = Date.now();
+    const _startTime = Date.now();
     const allFindings: IaCFinding[] = [];
     let filesScanned = 0;
     const iacTypesFound = new Set<IaCType>();
@@ -1026,12 +1026,12 @@ class IaCScanner {
         });
 
         let stdout = '';
-        let stderr = '';
+        let _stderr = '';
 
         proc.stdout.on('data', (data) => { stdout += data.toString(); });
-        proc.stderr.on('data', (data) => { stderr += data.toString(); });
+        proc.stderr.on('data', (data) => { _stderr += data.toString(); });
 
-        proc.on('close', (code) => {
+        proc.on('close', (_code) => {
           if (stdout) {
             try {
               const results = JSON.parse(stdout);
@@ -1077,12 +1077,12 @@ class IaCScanner {
 
   enableRule(ruleId: string): void {
     const rule = this.rules.find(r => r.id === ruleId);
-    if (rule) rule.enabled = true;
+    if (rule) {rule.enabled = true;}
   }
 
   disableRule(ruleId: string): void {
     const rule = this.rules.find(r => r.id === ruleId);
-    if (rule) rule.enabled = false;
+    if (rule) {rule.enabled = false;}
   }
 }
 

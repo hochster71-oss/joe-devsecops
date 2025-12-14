@@ -183,7 +183,7 @@ class AnalyticsService {
    * Get the current user's behavior profile
    */
   getUserProfile(): UserBehaviorProfile | null {
-    if (!this.currentUserId) return null;
+    if (!this.currentUserId) {return null;}
 
     const profile = analyticsDb.getOrCreateUserProfile(this.currentUserId);
     const expertiseLevel = analyticsDb.detectExpertiseLevel(this.currentUserId);
@@ -226,35 +226,35 @@ class AnalyticsService {
   /**
    * Calculate user engagement score (0-100)
    */
-  private calculateEngagementScore(profile: UserProfile, insights: any): number {
+  private calculateEngagementScore(profile: UserProfile, insights: ReturnType<typeof analyticsDb.getInsights>): number {
     let score = 0;
 
     // Interaction frequency (max 30 points)
-    if (profile.totalInteractions > 1000) score += 30;
-    else if (profile.totalInteractions > 500) score += 25;
-    else if (profile.totalInteractions > 100) score += 20;
-    else if (profile.totalInteractions > 50) score += 15;
-    else if (profile.totalInteractions > 10) score += 10;
-    else score += 5;
+    if (profile.totalInteractions > 1000) {score += 30;}
+    else if (profile.totalInteractions > 500) {score += 25;}
+    else if (profile.totalInteractions > 100) {score += 20;}
+    else if (profile.totalInteractions > 50) {score += 15;}
+    else if (profile.totalInteractions > 10) {score += 10;}
+    else {score += 5;}
 
     // Query depth (max 30 points) - based on avg rating given
-    if (insights.avgQueryRating >= 4) score += 30;
-    else if (insights.avgQueryRating >= 3) score += 20;
-    else if (insights.avgQueryRating >= 2) score += 10;
+    if (insights.avgQueryRating >= 4) {score += 30;}
+    else if (insights.avgQueryRating >= 3) {score += 20;}
+    else if (insights.avgQueryRating >= 2) {score += 10;}
 
     // Feature variety (max 20 points)
     const elementTypeCount = insights.topElementTypes.length;
-    if (elementTypeCount >= 8) score += 20;
-    else if (elementTypeCount >= 5) score += 15;
-    else if (elementTypeCount >= 3) score += 10;
-    else score += 5;
+    if (elementTypeCount >= 8) {score += 20;}
+    else if (elementTypeCount >= 5) {score += 15;}
+    else if (elementTypeCount >= 3) {score += 10;}
+    else {score += 5;}
 
     // Recency (max 20 points)
     const daysSinceActive = (Date.now() - profile.lastActive) / (24 * 60 * 60 * 1000);
-    if (daysSinceActive < 1) score += 20;
-    else if (daysSinceActive < 7) score += 15;
-    else if (daysSinceActive < 30) score += 10;
-    else score += 5;
+    if (daysSinceActive < 1) {score += 20;}
+    else if (daysSinceActive < 7) {score += 15;}
+    else if (daysSinceActive < 30) {score += 10;}
+    else {score += 5;}
 
     return Math.min(100, score);
   }
@@ -263,7 +263,7 @@ class AnalyticsService {
    * Update user's preferred frameworks based on usage
    */
   updatePreferredFrameworks(frameworks: string[]): void {
-    if (!this.currentUserId) return;
+    if (!this.currentUserId) {return;}
 
     const profile = analyticsDb.getOrCreateUserProfile(this.currentUserId);
     let existing: string[] = [];

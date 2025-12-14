@@ -12,6 +12,7 @@ import { create } from 'zustand';
 // ELECTRON API HELPER
 // =============================================================================
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const getElectronAPI = (): any => (window as any).electronAPI;
 
 // =============================================================================
@@ -120,7 +121,7 @@ export const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
   // ===========================================================================
 
   initialize: async () => {
-    if (get().isInitialized) return;
+    if (get().isInitialized) {return;}
 
     set({ isLoading: true, error: null });
 

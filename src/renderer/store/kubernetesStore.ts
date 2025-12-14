@@ -287,11 +287,11 @@ export const useKubernetesStore = create<KubernetesState>((set, get) => ({
         });
         return false;
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       set({
         connected: false,
         connecting: false,
-        connectionError: error.message || 'Connection failed'
+        connectionError: error instanceof Error ? error.message : 'Connection failed'
       });
       return false;
     }
@@ -372,11 +372,11 @@ export const useKubernetesStore = create<KubernetesState>((set, get) => ({
         criticalFindings
       });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       set({
         isScanning: false,
         scanProgress: 0,
-        connectionError: error.message
+        connectionError: error instanceof Error ? error.message : 'Scan failed'
       });
       throw error;
     }
@@ -384,7 +384,7 @@ export const useKubernetesStore = create<KubernetesState>((set, get) => ({
 
   // Scan pod security only
   scanPodSecurity: async (namespace?: string) => {
-    if (!get().connected) return;
+    if (!get().connected) {return;}
 
     set({ isScanning: true });
     try {
@@ -410,7 +410,7 @@ export const useKubernetesStore = create<KubernetesState>((set, get) => ({
 
   // Scan container images
   scanImages: async (namespace?: string) => {
-    if (!get().connected) return;
+    if (!get().connected) {return;}
 
     set({ isScanning: true });
     try {
@@ -443,7 +443,7 @@ export const useKubernetesStore = create<KubernetesState>((set, get) => ({
 
   // Analyze RBAC
   analyzeRBAC: async () => {
-    if (!get().connected) return;
+    if (!get().connected) {return;}
 
     set({ isScanning: true });
     try {

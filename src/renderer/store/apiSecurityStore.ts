@@ -199,7 +199,7 @@ export const useAPISecurityStore = create<APISecurityState>((set, get) => ({
   getFilteredFindings: () => {
     const { currentResult, severityFilter, categoryFilter, searchQuery } = get();
 
-    if (!currentResult) return [];
+    if (!currentResult) {return [];}
 
     return currentResult.findings.filter((finding) => {
       // Severity filter
@@ -243,7 +243,7 @@ export const useAPISecurityStore = create<APISecurityState>((set, get) => ({
       'API10:2023': 0
     };
 
-    if (!currentResult) return counts;
+    if (!currentResult) {return counts;}
 
     for (const finding of currentResult.findings) {
       if (counts[finding.category] !== undefined) {
@@ -257,7 +257,7 @@ export const useAPISecurityStore = create<APISecurityState>((set, get) => ({
   // Calculate security score (0-100)
   getSecurityScore: () => {
     const { currentResult } = get();
-    if (!currentResult || currentResult.endpointsAnalyzed === 0) return 100;
+    if (!currentResult || currentResult.endpointsAnalyzed === 0) {return 100;}
 
     const { summary, coverage } = currentResult;
 
@@ -273,27 +273,12 @@ export const useAPISecurityStore = create<APISecurityState>((set, get) => ({
 
     // Bonus for authenticated coverage
     const authCoverage = coverage.total > 0 ? (coverage.authenticated / coverage.total) * 100 : 0;
-    if (authCoverage >= 80) score += 5;
-    else if (authCoverage < 50) score -= 10;
+    if (authCoverage >= 80) {score += 5;}
+    else if (authCoverage < 50) {score -= 10;}
 
     // Clamp to 0-100
     return Math.max(0, Math.min(100, Math.round(score)));
   }
 }));
 
-// Extend window.electronAPI types
-declare global {
-  interface Window {
-    electronAPI?: {
-      apiSecurity?: {
-        scanSpec: (filePath: string) => Promise<APIScanResult>;
-        scanDirectory: (dirPath: string) => Promise<APIScanResult[]>;
-        getOWASPTop10: () => Promise<OWASPAPITop10[]>;
-      };
-      fs?: {
-        selectFile: (filters?: { name: string; extensions: string[] }[]) => Promise<string | null>;
-        selectDirectory: () => Promise<string | null>;
-      };
-    };
-  }
-}
+// Type declarations consolidated in src/types/electron.d.ts

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   Bot,
   Send,
@@ -9,12 +9,9 @@ import {
   AlertTriangle,
   Shield,
   Code,
-  RefreshCw,
   Radar,
   Target,
-  FileSearch,
   Bug,
-  Lock,
   Zap,
   CheckCircle2,
   XCircle,
@@ -141,7 +138,7 @@ export default function AiAssistantView() {
   // DoD Security Assessment Scanner
   const runSecurityScan = async (scanTypeId: string) => {
     const scanType = scanTypes.find(s => s.id === scanTypeId);
-    if (!scanType || isScanning) return;
+    if (!scanType || isScanning) {return;}
 
     setIsScanning(true);
     setCurrentScanType(scanTypeId);
@@ -303,7 +300,7 @@ ${warnings > 0 ? '### Warnings to Review:\n' + results.filter(r => r.status === 
   };
 
   const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || isLoading) {return;}
 
     const userMessage: Message = {
       id: Date.now().toString(),

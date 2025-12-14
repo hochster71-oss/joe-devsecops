@@ -18,8 +18,6 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import * as k8s from '@kubernetes/client-node';
 import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
 
 const execAsync = promisify(exec);
 
@@ -258,12 +256,12 @@ class KubernetesScanner {
       console.log('[J.O.E. K8s] Connected successfully:', clusterInfo.name);
       return { success: true, cluster: clusterInfo };
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('[J.O.E. K8s] Connection failed:', error);
       this.connected = false;
       return {
         success: false,
-        error: error.message || 'Failed to connect to Kubernetes cluster'
+        error: (error as Error).message || 'Failed to connect to Kubernetes cluster'
       };
     }
   }
@@ -357,7 +355,7 @@ class KubernetesScanner {
    * Get cluster information
    */
   private async getClusterInfo(): Promise<ClusterInfo> {
-    if (!this.k8sApi) throw new Error('Not connected');
+    if (!this.k8sApi) {throw new Error('Not connected');}
 
     const nodes = await this.k8sApi.listNode();
     const namespaces = await this.k8sApi.listNamespace();
@@ -398,7 +396,7 @@ class KubernetesScanner {
               id: result.test_number,
               section: control.text,
               title: result.test_desc,
-              status: result.status.toUpperCase() as any,
+              status: result.status.toUpperCase() as 'PASS' | 'FAIL' | 'WARN' | 'INFO',
               severity: this.mapCISSeverity(result.status, result.scored),
               description: result.test_desc,
               remediation: result.remediation || 'See CIS Benchmark documentation',
@@ -434,7 +432,7 @@ class KubernetesScanner {
   private async runManualCISChecks(): Promise<CISFinding[]> {
     const findings: CISFinding[] = [];
 
-    if (!this.k8sApi) return findings;
+    if (!this.k8sApi) {return findings;}
 
     // CIS 5.1.1 - Ensure that the cluster-admin role is only used where required
     const clusterRoleBindings = await this.rbacApi?.listClusterRoleBinding();
@@ -601,7 +599,7 @@ class KubernetesScanner {
   private async analyzePodSecurity(targetNamespace?: string): Promise<PodSecurityResult> {
     console.log('[J.O.E. K8s] Analyzing Pod Security Standards...');
 
-    if (!this.k8sApi) throw new Error('Not connected');
+    if (!this.k8sApi) {throw new Error('Not connected');}
 
     const pods = targetNamespace
       ? await this.k8sApi.listNamespacedPod(targetNamespace)
@@ -693,7 +691,7 @@ class KubernetesScanner {
   private async analyzeRBAC(): Promise<RBACAnalysisResult> {
     console.log('[J.O.E. K8s] Analyzing RBAC configuration...');
 
-    if (!this.rbacApi || !this.k8sApi) throw new Error('Not connected');
+    if (!this.rbacApi || !this.k8sApi) {throw new Error('Not connected');}
 
     const serviceAccounts = await this.k8sApi.listServiceAccountForAllNamespaces();
     const clusterRoleBindings = await this.rbacApi.listClusterRoleBinding();
@@ -793,7 +791,7 @@ class KubernetesScanner {
   private async analyzeNetworkPolicies(): Promise<NetworkPolicyResult> {
     console.log('[J.O.E. K8s] Analyzing Network Policies...');
 
-    if (!this.networkingApi || !this.k8sApi) throw new Error('Not connected');
+    if (!this.networkingApi || !this.k8sApi) {throw new Error('Not connected');}
 
     const namespaces = await this.k8sApi.listNamespace();
     const networkPolicies = await this.networkingApi.listNetworkPolicyForAllNamespaces();
@@ -866,7 +864,7 @@ class KubernetesScanner {
   private async scanContainerImages(targetNamespace?: string): Promise<ImageVulnerability[]> {
     console.log('[J.O.E. K8s] Scanning container images...');
 
-    if (!this.k8sApi) throw new Error('Not connected');
+    if (!this.k8sApi) {throw new Error('Not connected');}
 
     const pods = targetNamespace
       ? await this.k8sApi.listNamespacedPod(targetNamespace)
@@ -961,7 +959,7 @@ class KubernetesScanner {
   private async analyzeSecretsExposure(targetNamespace?: string): Promise<SecretsExposureResult> {
     console.log('[J.O.E. K8s] Analyzing secrets exposure...');
 
-    if (!this.k8sApi) throw new Error('Not connected');
+    if (!this.k8sApi) {throw new Error('Not connected');}
 
     const secrets = targetNamespace
       ? await this.k8sApi.listNamespacedSecret(targetNamespace)
@@ -1028,7 +1026,7 @@ class KubernetesScanner {
   private async analyzeResourceQuotas(): Promise<ResourceQuotaResult> {
     console.log('[J.O.E. K8s] Analyzing resource quotas...');
 
-    if (!this.k8sApi) throw new Error('Not connected');
+    if (!this.k8sApi) {throw new Error('Not connected');}
 
     const namespaces = await this.k8sApi.listNamespace();
     const resourceQuotas = await this.k8sApi.listResourceQuotaForAllNamespaces();
@@ -1056,7 +1054,7 @@ class KubernetesScanner {
     // Check pods without resource limits/requests
     for (const pod of pods.body.items) {
       const namespace = pod.metadata?.namespace || '';
-      if (systemNamespaces.includes(namespace)) continue;
+      if (systemNamespaces.includes(namespace)) {continue;}
 
       for (const container of pod.spec?.containers || []) {
         const resources = container.resources;
@@ -1132,7 +1130,7 @@ class KubernetesScanner {
    * Map CIS severity
    */
   private mapCISSeverity(status: string, scored: boolean): 'critical' | 'high' | 'medium' | 'low' | 'info' {
-    if (!scored) return 'info';
+    if (!scored) {return 'info';}
     switch (status.toLowerCase()) {
       case 'fail': return 'high';
       case 'warn': return 'medium';
