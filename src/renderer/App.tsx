@@ -21,6 +21,7 @@ import AnalyticsView from './views/AnalyticsView';
 import IaCSecurityView from './views/IaCSecurityView';
 import APISecurityView from './views/APISecurityView';
 import IntegrationsView from './views/IntegrationsView';
+import VirtualSpacesView from './views/VirtualSpacesView';
 import PasswordChangeModal from './components/PasswordChangeModal';
 
 // AI Touchpoint System - Space-Grade Security Intelligence
@@ -96,6 +97,7 @@ export default function App() {
         <Route path="mission-control" element={<MissionControlView />} />
         <Route path="attack-surface" element={<AttackSurfaceView />} />
         <Route path="integrations" element={<IntegrationsView />} />
+        <Route path="virtual-spaces" element={<VirtualSpacesView />} />
         <Route path="analytics" element={<AnalyticsView />} />
         <Route path="reports" element={<ReportsView />} />
         <Route path="settings" element={<SettingsView />} />

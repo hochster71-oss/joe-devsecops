@@ -25,6 +25,7 @@ import { iacScanner } from './iac-scanner';
 import { apiSecurityScanner } from './api-security-scanner';
 import { siemConnector } from './integrations/siem-connector';
 import { ticketingService } from './integrations/ticketing';
+import { virtualSpacesService } from './virtual-spaces-service';
 
 // ========================================
 // SECURITY CONFIGURATION
@@ -2908,4 +2909,140 @@ ipcMain.handle('ticketing-sync-status', async (_, platform: string, ticketId: st
 // Get supported ticketing platforms
 ipcMain.handle('ticketing-get-platforms', async () => {
   return ['jira', 'servicenow', 'azure-boards', 'github', 'linear'];
+});
+
+// ========================================
+// VIRTUAL SPACES IPC HANDLERS
+// DoD-Hardened Kubernetes Namespaces for Secure Code Analysis
+// Kind Cluster | Pod Security Standards | Network Policies | RBAC
+// ========================================
+
+// Get cluster status
+ipcMain.handle('vs-cluster-status', async () => {
+  try {
+    return await virtualSpacesService.getClusterStatus();
+  } catch (error) {
+    console.error('[Virtual Spaces] Failed to get cluster status:', error);
+    return { status: 'error', name: '', nodes: 0, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+});
+
+// Initialize/ensure cluster exists
+ipcMain.handle('vs-init-cluster', async () => {
+  try {
+    await virtualSpacesService.ensureClusterExists();
+    return await virtualSpacesService.getClusterStatus();
+  } catch (error) {
+    console.error('[Virtual Spaces] Failed to initialize cluster:', error);
+    return { status: 'error', name: '', nodes: 0, error: error instanceof Error ? error.message : 'Cluster initialization failed' };
+  }
+});
+
+// Destroy cluster
+ipcMain.handle('vs-destroy-cluster', async () => {
+  try {
+    await virtualSpacesService.destroyCluster();
+    return { success: true };
+  } catch (error) {
+    console.error('[Virtual Spaces] Failed to destroy cluster:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Cluster destruction failed' };
+  }
+});
+
+// Create a new virtual space
+ipcMain.handle('vs-create-space', async (_, config: { name: string; owner: string; tier: 'team' | 'elevated' | 'admin'; ttlMinutes?: number }) => {
+  try {
+    logSecurityEvent('VIRTUAL_SPACE_CREATE', config.owner, true, `Creating ${config.tier} space: ${config.name}`);
+    const space = await virtualSpacesService.createSpace(config);
+    return space;
+  } catch (error) {
+    logSecurityEvent('VIRTUAL_SPACE_CREATE', config.owner, false, error instanceof Error ? error.message : 'Creation failed', 'WARNING');
+    throw error;
+  }
+});
+
+// Destroy a virtual space
+ipcMain.handle('vs-destroy-space', async (_, spaceId: string) => {
+  try {
+    await virtualSpacesService.destroySpace(spaceId);
+    logSecurityEvent('VIRTUAL_SPACE_DESTROY', undefined, true, `Destroyed space: ${spaceId}`);
+    return { success: true };
+  } catch (error) {
+    logSecurityEvent('VIRTUAL_SPACE_DESTROY', undefined, false, error instanceof Error ? error.message : 'Destruction failed', 'WARNING');
+    return { success: false, error: error instanceof Error ? error.message : 'Space destruction failed' };
+  }
+});
+
+// List all virtual spaces
+ipcMain.handle('vs-list-spaces', async () => {
+  try {
+    return await virtualSpacesService.listSpaces();
+  } catch (error) {
+    console.error('[Virtual Spaces] Failed to list spaces:', error);
+    return [];
+  }
+});
+
+// Get a specific space
+ipcMain.handle('vs-get-space', async (_, spaceId: string) => {
+  try {
+    const spaces = await virtualSpacesService.listSpaces();
+    return spaces.find(s => s.id === spaceId) || null;
+  } catch (error) {
+    console.error('[Virtual Spaces] Failed to get space:', error);
+    return null;
+  }
+});
+
+// Import code into a space
+ipcMain.handle('vs-import-code', async (_, spaceId: string, source: { type: 'git' | 'upload'; url?: string; path?: string }) => {
+  try {
+    logSecurityEvent('VIRTUAL_SPACE_IMPORT', undefined, true, `Importing code to space ${spaceId} from ${source.type}`);
+    return await virtualSpacesService.importCode(spaceId, source);
+  } catch (error) {
+    logSecurityEvent('VIRTUAL_SPACE_IMPORT', undefined, false, error instanceof Error ? error.message : 'Import failed', 'WARNING');
+    throw error;
+  }
+});
+
+// Export artifacts from a space
+ipcMain.handle('vs-export-artifacts', async (_, spaceId: string, artifacts: string[]) => {
+  try {
+    logSecurityEvent('VIRTUAL_SPACE_EXPORT', undefined, true, `Exporting ${artifacts.length} artifacts from space ${spaceId}`);
+    return await virtualSpacesService.exportArtifacts(spaceId, artifacts);
+  } catch (error) {
+    logSecurityEvent('VIRTUAL_SPACE_EXPORT', undefined, false, error instanceof Error ? error.message : 'Export failed', 'WARNING');
+    throw error;
+  }
+});
+
+// Scan a space for security issues
+ipcMain.handle('vs-scan-space', async (_, spaceId: string) => {
+  try {
+    logSecurityEvent('VIRTUAL_SPACE_SCAN', undefined, true, `Scanning space ${spaceId}`);
+    return await virtualSpacesService.scanSpace(spaceId);
+  } catch (error) {
+    logSecurityEvent('VIRTUAL_SPACE_SCAN', undefined, false, error instanceof Error ? error.message : 'Scan failed', 'WARNING');
+    throw error;
+  }
+});
+
+// Extend space TTL
+ipcMain.handle('vs-extend-space', async (_, spaceId: string, additionalMinutes: number) => {
+  try {
+    await virtualSpacesService.extendSpaceTTL(spaceId, additionalMinutes);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Extension failed' };
+  }
+});
+
+// Get tier information
+ipcMain.handle('vs-get-tiers', async () => {
+  return virtualSpacesService.getTiers();
+});
+
+// Check if user can create a specific tier
+ipcMain.handle('vs-can-create-tier', async (_, tier: string, owner: string) => {
+  return virtualSpacesService.canCreateTier(tier as 'team' | 'elevated' | 'admin', owner);
 });

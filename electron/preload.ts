@@ -568,6 +568,43 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('ticketing-sync-status', platform, ticketId),
 
     getPlatforms: () => ipcRenderer.invoke('ticketing-get-platforms')
+  },
+
+  // ========================================
+  // VIRTUAL SPACES API
+  // DoD-Hardened Kubernetes Namespaces for Secure Code Analysis
+  // Kind Cluster | Pod Security Standards | Network Policies | RBAC
+  // ========================================
+  virtualSpaces: {
+    // Cluster lifecycle
+    getClusterStatus: () => ipcRenderer.invoke('vs-cluster-status'),
+    initCluster: () => ipcRenderer.invoke('vs-init-cluster'),
+    destroyCluster: () => ipcRenderer.invoke('vs-destroy-cluster'),
+
+    // Space lifecycle
+    createSpace: (config: { name: string; owner: string; tier: 'team' | 'elevated' | 'admin'; ttlMinutes?: number }) =>
+      ipcRenderer.invoke('vs-create-space', config),
+    destroySpace: (spaceId: string) => ipcRenderer.invoke('vs-destroy-space', spaceId),
+    listSpaces: () => ipcRenderer.invoke('vs-list-spaces'),
+    getSpace: (spaceId: string) => ipcRenderer.invoke('vs-get-space', spaceId),
+
+    // Code operations
+    importCode: (spaceId: string, source: { type: 'git' | 'upload'; url?: string; path?: string }) =>
+      ipcRenderer.invoke('vs-import-code', spaceId, source),
+    exportArtifacts: (spaceId: string, artifacts: string[]) =>
+      ipcRenderer.invoke('vs-export-artifacts', spaceId, artifacts),
+
+    // Security scanning
+    scanSpace: (spaceId: string) => ipcRenderer.invoke('vs-scan-space', spaceId),
+
+    // Space management
+    extendSpace: (spaceId: string, additionalMinutes: number) =>
+      ipcRenderer.invoke('vs-extend-space', spaceId, additionalMinutes),
+
+    // Tier information
+    getTiers: () => ipcRenderer.invoke('vs-get-tiers'),
+    canCreateTier: (tier: string, owner: string) =>
+      ipcRenderer.invoke('vs-can-create-tier', tier, owner)
   }
 });
 
