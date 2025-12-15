@@ -156,6 +156,7 @@ jobs:
         with:
           sarif_file: semgrep.sarif
         if: always()
+        continue-on-error: true  # May fail if code scanning not enabled
 
   # Quality gate summary
   quality-gate:

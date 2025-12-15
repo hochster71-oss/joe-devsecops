@@ -125,6 +125,7 @@ jobs:
         with:
           sarif_file: semgrep.sarif
         if: always()
+        continue-on-error: true  # May fail if code scanning not enabled
 
       - name: Save SAST Evidence
         run: |
