@@ -323,9 +323,12 @@ export const useKubernetesStore = create<KubernetesState>((set, get) => ({
 
     set({ isScanning: true, scanProgress: 0 });
 
+    // Declare progressInterval outside try block so it can be cleared in finally
+    let progressInterval: ReturnType<typeof setInterval> | null = null;
+
     try {
       // Simulate progress updates
-      const progressInterval = setInterval(() => {
+      progressInterval = setInterval(() => {
         set(state => ({
           scanProgress: Math.min(state.scanProgress + 10, 90)
         }));
@@ -336,8 +339,6 @@ export const useKubernetesStore = create<KubernetesState>((set, get) => ({
       }
 
       const results = await window.electronAPI.kubernetes.runAudit(namespace) as K8sScanResults;
-
-      clearInterval(progressInterval);
 
       // Update state with results
       const criticalFindings = extractCriticalFindings(results);
@@ -379,6 +380,11 @@ export const useKubernetesStore = create<KubernetesState>((set, get) => ({
         connectionError: error instanceof Error ? error.message : 'Scan failed'
       });
       throw error;
+    } finally {
+      // Always clear the interval to prevent memory leaks
+      if (progressInterval) {
+        clearInterval(progressInterval);
+      }
     }
   },
 

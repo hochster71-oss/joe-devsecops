@@ -304,9 +304,12 @@ export const useGitLabStore = create<GitLabState>((set, get) => ({
 
     set({ isScanning: true, scanProgress: 0 });
 
+    // Declare progressInterval outside try block so it can be cleared in finally
+    let progressInterval: ReturnType<typeof setInterval> | null = null;
+
     try {
       // Simulate progress
-      const progressInterval = setInterval(() => {
+      progressInterval = setInterval(() => {
         set(state => ({
           scanProgress: Math.min(state.scanProgress + 5, 90)
         }));
@@ -317,8 +320,6 @@ export const useGitLabStore = create<GitLabState>((set, get) => ({
       }
 
       const results = await window.electronAPI.gitlab.scanProject(project.id) as GitLabScanResults;
-
-      clearInterval(progressInterval);
 
       // Calculate metrics
       const criticalFindings = extractCriticalFindings(results);
@@ -355,6 +356,11 @@ export const useGitLabStore = create<GitLabState>((set, get) => ({
         connectionError: error instanceof Error ? error.message : 'Scan failed'
       });
       throw error;
+    } finally {
+      // Always clear the interval to prevent memory leaks
+      if (progressInterval) {
+        clearInterval(progressInterval);
+      }
     }
   },
 
