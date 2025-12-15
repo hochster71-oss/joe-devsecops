@@ -124,11 +124,21 @@ interface NotificationHistoryEntry {
 }
 
 // =============================================================================
+// STORE SCHEMA
+// =============================================================================
+
+interface NotificationStoreSchema {
+  channelConfig: ChannelConfig;
+  alertRules: AlertRule[];
+  notificationHistory: NotificationHistoryEntry[];
+}
+
+// =============================================================================
 // NOTIFICATION SERVICE
 // =============================================================================
 
 class NotificationService {
-  private store: Store;
+  private store: Store<NotificationStoreSchema>;
   private history: NotificationHistoryEntry[] = [];
   private throttleMap: Map<string, number> = new Map();
   private stats: NotificationStats = {

@@ -247,9 +247,9 @@ class KubernetesScanner {
         context: config.context,
         server: cluster?.server || 'unknown',
         version: versionInfo,
-        nodeCount: nodes.body.items.length,
-        namespaceCount: namespaces.body.items.length,
-        podCount: pods.body.items.length,
+        nodeCount: nodes.items.length,
+        namespaceCount: namespaces.items.length,
+        podCount: pods.items.length,
         connected: true
       };
 
@@ -367,9 +367,9 @@ class KubernetesScanner {
       context: this.currentContext,
       server: cluster?.server || 'unknown',
       version: await this.getClusterVersion(),
-      nodeCount: nodes.body.items.length,
-      namespaceCount: namespaces.body.items.length,
-      podCount: pods.body.items.length,
+      nodeCount: nodes.items.length,
+      namespaceCount: namespaces.items.length,
+      podCount: pods.items.length,
       connected: true
     };
   }
@@ -436,8 +436,8 @@ class KubernetesScanner {
 
     // CIS 5.1.1 - Ensure that the cluster-admin role is only used where required
     const clusterRoleBindings = await this.rbacApi?.listClusterRoleBinding();
-    const adminBindings = clusterRoleBindings?.body.items.filter(
-      crb => crb.roleRef.name === 'cluster-admin'
+    const adminBindings = clusterRoleBindings?.items.filter(
+      (crb: k8s.V1ClusterRoleBinding) => crb.roleRef.name === 'cluster-admin'
     ) || [];
 
     if (adminBindings.length > 2) {
@@ -466,8 +466,8 @@ class KubernetesScanner {
 
     // CIS 5.1.3 - Minimize wildcard use in Roles and ClusterRoles
     const clusterRoles = await this.rbacApi?.listClusterRole();
-    const wildcardRoles = clusterRoles?.body.items.filter(cr =>
-      cr.rules?.some(rule =>
+    const wildcardRoles = clusterRoles?.items.filter((cr: k8s.V1ClusterRole) =>
+      cr.rules?.some((rule: k8s.V1PolicyRule) =>
         rule.verbs?.includes('*') || rule.resources?.includes('*') || rule.apiGroups?.includes('*')
       )
     ) || [];
@@ -487,8 +487,8 @@ class KubernetesScanner {
 
     // CIS 5.2.2 - Minimize the admission of privileged containers
     const pods = await this.k8sApi.listPodForAllNamespaces();
-    const privilegedPods = pods.body.items.filter(pod =>
-      pod.spec?.containers?.some(c => c.securityContext?.privileged === true)
+    const privilegedPods = pods.items.filter((pod: k8s.V1Pod) =>
+      pod.spec?.containers?.some((c: k8s.V1Container) => c.securityContext?.privileged === true)
     );
 
     if (privilegedPods.length > 0) {
@@ -516,7 +516,7 @@ class KubernetesScanner {
     }
 
     // CIS 5.2.3 - Minimize the admission of containers wishing to share the host process ID namespace
-    const hostPIDPods = pods.body.items.filter(pod => pod.spec?.hostPID === true);
+    const hostPIDPods = pods.items.filter((pod: k8s.V1Pod) => pod.spec?.hostPID === true);
     if (hostPIDPods.length > 0) {
       findings.push({
         id: '5.2.3',
@@ -531,7 +531,7 @@ class KubernetesScanner {
     }
 
     // CIS 5.2.4 - Minimize the admission of containers wishing to share the host network namespace
-    const hostNetworkPods = pods.body.items.filter(pod => pod.spec?.hostNetwork === true);
+    const hostNetworkPods = pods.items.filter((pod: k8s.V1Pod) => pod.spec?.hostNetwork === true);
     if (hostNetworkPods.length > 0) {
       findings.push({
         id: '5.2.4',
@@ -548,11 +548,11 @@ class KubernetesScanner {
     // CIS 5.3.2 - Ensure that all Namespaces have Network Policies defined
     const namespaces = await this.k8sApi.listNamespace();
     const networkPolicies = await this.networkingApi?.listNetworkPolicyForAllNamespaces();
-    const nsWithPolicies = new Set(networkPolicies?.body.items.map(np => np.metadata?.namespace));
+    const nsWithPolicies = new Set(networkPolicies?.items.map((np: k8s.V1NetworkPolicy) => np.metadata?.namespace));
 
-    const nsWithoutPolicies = namespaces.body.items
-      .filter(ns => !['kube-system', 'kube-public', 'kube-node-lease'].includes(ns.metadata?.name || ''))
-      .filter(ns => !nsWithPolicies.has(ns.metadata?.name));
+    const nsWithoutPolicies = namespaces.items
+      .filter((ns: k8s.V1Namespace) => !['kube-system', 'kube-public', 'kube-node-lease'].includes(ns.metadata?.name || ''))
+      .filter((ns: k8s.V1Namespace) => !nsWithPolicies.has(ns.metadata?.name));
 
     if (nsWithoutPolicies.length > 0) {
       findings.push({
@@ -568,10 +568,10 @@ class KubernetesScanner {
     }
 
     // CIS 5.4.1 - Prefer using secrets as files over secrets as environment variables
-    const podsWithEnvSecrets = pods.body.items.filter(pod =>
-      pod.spec?.containers?.some(c =>
-        c.env?.some(e => e.valueFrom?.secretKeyRef) ||
-        c.envFrom?.some(ef => ef.secretRef)
+    const podsWithEnvSecrets = pods.items.filter((pod: k8s.V1Pod) =>
+      pod.spec?.containers?.some((c: k8s.V1Container) =>
+        c.env?.some((e: k8s.V1EnvVar) => e.valueFrom?.secretKeyRef) ||
+        c.envFrom?.some((ef: k8s.V1EnvFromSource) => ef.secretRef)
       )
     );
 
@@ -602,7 +602,7 @@ class KubernetesScanner {
     if (!this.k8sApi) {throw new Error('Not connected');}
 
     const pods = targetNamespace
-      ? await this.k8sApi.listNamespacedPod(targetNamespace)
+      ? await this.k8sApi.listNamespacedPod({ namespace: targetNamespace })
       : await this.k8sApi.listPodForAllNamespaces();
 
     const violations: PSSViolation[] = [];
@@ -610,7 +610,7 @@ class KubernetesScanner {
     let baselinePods = 0;
     let restrictedPods = 0;
 
-    for (const pod of pods.body.items) {
+    for (const pod of pods.items) {
       const podName = pod.metadata?.name || 'unknown';
       const namespace = pod.metadata?.namespace || 'default';
       const containers = pod.spec?.containers || [];
@@ -640,7 +640,7 @@ class KubernetesScanner {
         if (pod.spec?.hostIPC === true) {
           containerViolations.push('Pod uses host IPC namespace');
         }
-        if (sc?.capabilities?.add?.some(cap => ['NET_ADMIN', 'SYS_ADMIN', 'ALL'].includes(cap))) {
+        if (sc?.capabilities?.add?.some((cap: string) => ['NET_ADMIN', 'SYS_ADMIN', 'ALL'].includes(cap))) {
           containerViolations.push('Container adds dangerous capabilities');
         }
 
@@ -673,10 +673,10 @@ class KubernetesScanner {
       }
     }
 
-    baselinePods = pods.body.items.length - privilegedPods - restrictedPods;
+    baselinePods = pods.items.length - privilegedPods - restrictedPods;
 
     return {
-      totalPods: pods.body.items.length,
+      totalPods: pods.items.length,
       privilegedPods,
       baselinePods: Math.max(0, baselinePods),
       restrictedPods,
@@ -703,12 +703,12 @@ class KubernetesScanner {
     const serviceAccountRisks: RBACFinding[] = [];
 
     // Count cluster-admin bindings
-    const adminBindings = clusterRoleBindings.body.items.filter(
-      crb => crb.roleRef.name === 'cluster-admin'
+    const adminBindings = clusterRoleBindings.items.filter(
+      (crb: k8s.V1ClusterRoleBinding) => crb.roleRef.name === 'cluster-admin'
     );
 
     // Find overprivileged cluster role bindings
-    for (const crb of clusterRoleBindings.body.items) {
+    for (const crb of clusterRoleBindings.items) {
       if (crb.roleRef.name === 'cluster-admin') {
         for (const subject of crb.subjects || []) {
           if (subject.kind === 'ServiceAccount' && subject.namespace !== 'kube-system') {
@@ -727,8 +727,8 @@ class KubernetesScanner {
     }
 
     // Check for wildcard permissions in cluster roles
-    for (const cr of clusterRoles.body.items) {
-      const wildcardRules = cr.rules?.filter(rule =>
+    for (const cr of clusterRoles.items) {
+      const wildcardRules = cr.rules?.filter((rule: k8s.V1PolicyRule) =>
         rule.verbs?.includes('*') || rule.resources?.includes('*')
       ) || [];
 
@@ -736,7 +736,7 @@ class KubernetesScanner {
         wildcardPermissions.push({
           subject: cr.metadata?.name || 'unknown',
           subjectKind: 'ServiceAccount',
-          permissions: wildcardRules.map(r =>
+          permissions: wildcardRules.map((r: k8s.V1PolicyRule) =>
             `${r.apiGroups?.join(',')}/${r.resources?.join(',')}:${r.verbs?.join(',')}`
           ),
           risk: 'high',
@@ -747,13 +747,13 @@ class KubernetesScanner {
     }
 
     // Check for service accounts with automounted tokens in non-system namespaces
-    for (const sa of serviceAccounts.body.items) {
+    for (const sa of serviceAccounts.items) {
       const namespace = sa.metadata?.namespace || '';
       if (!['kube-system', 'kube-public'].includes(namespace)) {
         if (sa.automountServiceAccountToken !== false) {
           // Check if this SA has any bindings
-          const hasBindings = roleBindings.body.items.some(rb =>
-            rb.subjects?.some(s =>
+          const hasBindings = roleBindings.items.some((rb: k8s.V1RoleBinding) =>
+            rb.subjects?.some((s: k8s.RbacV1Subject) =>
               s.kind === 'ServiceAccount' &&
               s.name === sa.metadata?.name &&
               s.namespace === namespace
@@ -776,7 +776,7 @@ class KubernetesScanner {
     }
 
     return {
-      totalServiceAccounts: serviceAccounts.body.items.length,
+      totalServiceAccounts: serviceAccounts.items.length,
       overprivilegedAccounts,
       clusterAdminBindings: adminBindings.length,
       wildcardPermissions,
@@ -802,7 +802,7 @@ class KubernetesScanner {
     let defaultDenyEgress = 0;
 
     // Analyze each network policy
-    for (const np of networkPolicies.body.items) {
+    for (const np of networkPolicies.items) {
       const namespace = np.metadata?.namespace || '';
       nsWithPolicies.add(namespace);
 
@@ -825,7 +825,7 @@ class KubernetesScanner {
     const systemNamespaces = ['kube-system', 'kube-public', 'kube-node-lease'];
     const namespacesWithoutPolicies: string[] = [];
 
-    for (const ns of namespaces.body.items) {
+    for (const ns of namespaces.items) {
       const nsName = ns.metadata?.name || '';
       if (!systemNamespaces.includes(nsName) && !nsWithPolicies.has(nsName)) {
         namespacesWithoutPolicies.push(nsName);
@@ -839,15 +839,15 @@ class KubernetesScanner {
       }
     }
 
-    const userNamespaces = namespaces.body.items.filter(
-      ns => !systemNamespaces.includes(ns.metadata?.name || '')
+    const userNamespaces = namespaces.items.filter(
+      (ns: k8s.V1Namespace) => !systemNamespaces.includes(ns.metadata?.name || '')
     );
     const coverage = userNamespaces.length > 0
       ? Math.round((nsWithPolicies.size / userNamespaces.length) * 100)
       : 100;
 
     return {
-      totalPolicies: networkPolicies.body.items.length,
+      totalPolicies: networkPolicies.items.length,
       namespacesWithPolicies: nsWithPolicies.size,
       namespacesWithoutPolicies,
       defaultDenyIngress,
@@ -867,13 +867,13 @@ class KubernetesScanner {
     if (!this.k8sApi) {throw new Error('Not connected');}
 
     const pods = targetNamespace
-      ? await this.k8sApi.listNamespacedPod(targetNamespace)
+      ? await this.k8sApi.listNamespacedPod({ namespace: targetNamespace })
       : await this.k8sApi.listPodForAllNamespaces();
 
     const imageVulns: ImageVulnerability[] = [];
     const scannedImages = new Set<string>();
 
-    for (const pod of pods.body.items) {
+    for (const pod of pods.items) {
       const namespace = pod.metadata?.namespace || '';
       const podName = pod.metadata?.name || '';
 
@@ -962,11 +962,11 @@ class KubernetesScanner {
     if (!this.k8sApi) {throw new Error('Not connected');}
 
     const secrets = targetNamespace
-      ? await this.k8sApi.listNamespacedSecret(targetNamespace)
+      ? await this.k8sApi.listNamespacedSecret({ namespace: targetNamespace })
       : await this.k8sApi.listSecretForAllNamespaces();
 
     const pods = targetNamespace
-      ? await this.k8sApi.listNamespacedPod(targetNamespace)
+      ? await this.k8sApi.listNamespacedPod({ namespace: targetNamespace })
       : await this.k8sApi.listPodForAllNamespaces();
 
     const findings: SecretsExposureResult['findings'] = [];
@@ -974,7 +974,7 @@ class KubernetesScanner {
     let envVarSecrets = 0;
 
     // Check secrets in default namespace
-    for (const secret of secrets.body.items) {
+    for (const secret of secrets.items) {
       if (secret.metadata?.namespace === 'default' && secret.type !== 'kubernetes.io/service-account-token') {
         secretsInDefault++;
         findings.push({
@@ -988,7 +988,7 @@ class KubernetesScanner {
     }
 
     // Check for secrets exposed via environment variables
-    for (const pod of pods.body.items) {
+    for (const pod of pods.items) {
       const namespace = pod.metadata?.namespace || '';
       const podName = pod.metadata?.name || '';
 
@@ -1011,7 +1011,7 @@ class KubernetesScanner {
     }
 
     return {
-      totalSecrets: secrets.body.items.length,
+      totalSecrets: secrets.items.length,
       secretsInDefaultNamespace: secretsInDefault,
       secretsWithWeakEncoding: 0, // Would need to check encryption at rest
       envVarSecrets,
@@ -1033,8 +1033,8 @@ class KubernetesScanner {
     const limitRanges = await this.k8sApi.listLimitRangeForAllNamespaces();
     const pods = await this.k8sApi.listPodForAllNamespaces();
 
-    const nsWithQuotas = new Set(resourceQuotas.body.items.map(rq => rq.metadata?.namespace));
-    const nsWithLimitRanges = new Set(limitRanges.body.items.map(lr => lr.metadata?.namespace));
+    const nsWithQuotas = new Set(resourceQuotas.items.map(rq => rq.metadata?.namespace));
+    const nsWithLimitRanges = new Set(limitRanges.items.map(lr => lr.metadata?.namespace));
 
     const systemNamespaces = ['kube-system', 'kube-public', 'kube-node-lease'];
     const namespacesWithoutQuotas: string[] = [];
@@ -1044,7 +1044,7 @@ class KubernetesScanner {
     let podsWithoutRequests = 0;
 
     // Check namespaces without quotas
-    for (const ns of namespaces.body.items) {
+    for (const ns of namespaces.items) {
       const nsName = ns.metadata?.name || '';
       if (!systemNamespaces.includes(nsName) && !nsWithQuotas.has(nsName)) {
         namespacesWithoutQuotas.push(nsName);
@@ -1052,7 +1052,7 @@ class KubernetesScanner {
     }
 
     // Check pods without resource limits/requests
-    for (const pod of pods.body.items) {
+    for (const pod of pods.items) {
       const namespace = pod.metadata?.namespace || '';
       if (systemNamespaces.includes(namespace)) {continue;}
 

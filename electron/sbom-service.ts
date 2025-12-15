@@ -152,13 +152,16 @@ class SBOMService {
           const name = pkgPath.replace('node_modules/', '').split('/node_modules/').pop() || '';
           if (name && !components.find(c => c.name === name)) {
             const info = pkgInfo as Record<string, unknown>;
+            const infoVersion = (info.version as string) || 'unknown';
+            const infoLicense = info.license as string | undefined;
+            const infoDeps = info.dependencies as Record<string, unknown> | undefined;
             components.push({
               name,
-              version: info.version || 'unknown',
+              version: infoVersion,
               type: 'library',
-              purl: `pkg:npm/${name}@${info.version}`,
-              licenses: info.license ? [info.license] : ['UNKNOWN'],
-              dependencies: info.dependencies ? Object.keys(info.dependencies) : []
+              purl: `pkg:npm/${name}@${infoVersion}`,
+              licenses: infoLicense ? [infoLicense] : ['UNKNOWN'],
+              dependencies: infoDeps ? Object.keys(infoDeps) : []
             });
           }
         }

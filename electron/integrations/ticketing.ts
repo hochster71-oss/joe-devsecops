@@ -78,11 +78,19 @@ export interface TicketStatus {
 }
 
 // =============================================================================
+// STORE SCHEMA
+// =============================================================================
+
+interface TicketingStoreSchema {
+  ticketingConfigs: TicketingConfig[];
+}
+
+// =============================================================================
 // TICKETING SERVICE
 // =============================================================================
 
 class TicketingService {
-  private store: Store;
+  private store: Store<TicketingStoreSchema>;
 
   constructor() {
     this.store = new Store({ name: 'joe-ticketing-config' });

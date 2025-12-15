@@ -336,15 +336,15 @@ class AnalyticsDatabase {
     const rows = stmt.all(...params) as Record<string, unknown>[];
 
     return rows.map(row => ({
-      id: row.id,
-      sessionId: row.session_id,
-      timestamp: row.timestamp,
-      type: row.type,
-      elementType: row.element_type,
-      elementId: row.element_id,
-      durationMs: row.duration_ms,
-      contextJson: row.context_json,
-      userId: row.user_id
+      id: row.id as string,
+      sessionId: row.session_id as string,
+      timestamp: row.timestamp as number,
+      type: row.type as string,
+      elementType: row.element_type as string,
+      elementId: row.element_id as string | undefined,
+      durationMs: row.duration_ms as number | undefined,
+      contextJson: row.context_json as string | undefined,
+      userId: row.user_id as string | undefined
     }));
   }
 
@@ -622,14 +622,14 @@ class AnalyticsDatabase {
     const rows = stmt.all(...params) as Record<string, unknown>[];
 
     return rows.map(row => ({
-      id: row.id,
-      patternType: row.pattern_type,
-      severity: row.severity,
-      description: row.description,
-      frequency: row.frequency,
-      recommendedActions: row.recommended_actions,
-      detectedAt: row.detected_at,
-      lastSeen: row.last_seen
+      id: row.id as number,
+      patternType: row.pattern_type as string,
+      severity: row.severity as 'critical' | 'high' | 'medium' | 'low',
+      description: row.description as string,
+      frequency: row.frequency as number,
+      recommendedActions: row.recommended_actions as string,
+      detectedAt: row.detected_at as number,
+      lastSeen: row.last_seen as number
     }));
   }
 
@@ -810,9 +810,9 @@ class AnalyticsDatabase {
 
     return rows.map(row => ({
       prompt: row.prompt as string,
-      response: row.response,
-      avgRating: row.avg_rating,
-      usageCount: row.usage_count
+      response: row.response as string,
+      avgRating: row.avg_rating as number,
+      usageCount: row.usage_count as number
     }));
   }
 

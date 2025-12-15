@@ -261,9 +261,9 @@ class GitLabScanner {
         webUrl: p.web_url,
         lastActivity: p.last_activity_at,
         namespace: {
-          id: p.namespace.id,
-          name: p.namespace.name,
-          path: p.namespace.path
+          id: (p.namespace as Record<string, unknown>).id as number,
+          name: (p.namespace as Record<string, unknown>).name as string,
+          path: (p.namespace as Record<string, unknown>).path as string
         }
       }));
     } catch (error) {
@@ -428,7 +428,7 @@ class GitLabScanner {
         findings.push({
           id: crypto.randomUUID(),
           title: checkId.split('.').pop() || checkId,
-          severity: this.mapSemgrepSeverity(extra?.severity as string | undefined),
+          severity: this.mapSemgrepSeverity((extra?.severity as string | undefined) || 'warning'),
           confidence: ((extra?.metadata as Record<string, unknown> | undefined)?.confidence as SASTFinding['confidence'] | undefined) || 'medium',
           category: ((extra?.metadata as Record<string, unknown> | undefined)?.category as string | undefined) || 'security',
           file: resultPath.replace(repoPath, '').replace(/^[/\\]/, ''),
@@ -872,12 +872,14 @@ class GitLabScanner {
         const auditResults = JSON.parse(result.toString());
         for (const [_name, advisory] of Object.entries(auditResults.advisories || {})) {
           const adv = advisory as Record<string, unknown>;
+          const advFindings = adv.findings as Array<Record<string, unknown>> | undefined;
+          const advCves = adv.cves as string[] | undefined;
           vulnerabilities.push({
-            package: adv.module_name,
-            version: adv.findings?.[0]?.version || 'unknown',
-            severity: adv.severity,
-            cve: adv.cves?.[0],
-            fixedVersion: adv.patched_versions
+            package: adv.module_name as string,
+            version: (advFindings?.[0]?.version as string | undefined) || 'unknown',
+            severity: adv.severity as string,
+            cve: advCves?.[0],
+            fixedVersion: adv.patched_versions as string | undefined
           });
         }
       } catch (e) {

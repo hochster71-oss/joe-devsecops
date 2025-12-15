@@ -36,7 +36,6 @@ import ComplianceRing from '../components/charts/ComplianceRing';
 import MitreHeatmap from '../components/charts/MitreHeatmap';
 import ThreatTimeline from '../components/charts/ThreatTimeline';
 import Modal from '../components/common/Modal';
-import AINetworkBackground from '../components/backgrounds/AINetworkBackground';
 
 /**
  * J.O.E. DevSecOps Dashboard - 4K Command Center
@@ -121,16 +120,6 @@ const HoloCard = ({ children, className = '', onClick, glow = 'blue' }: {
         ${className}
       `}
     >
-      {/* Holographic shimmer effect */}
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 animate-shimmer" />
-      </div>
-      {/* Scan line effect */}
-      <motion.div
-        className="absolute inset-x-0 h-px bg-gradient-to-r from-transparent via-joe-blue/50 to-transparent"
-        animate={{ top: ['0%', '100%'] }}
-        transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
-      />
       <div className="relative z-10">{children}</div>
     </motion.div>
   );
@@ -190,43 +179,6 @@ const MegaMetric = ({
     </HoloCard>
   );
 };
-
-// AI Brain visualization
-const AIBrainViz = () => (
-  <div className="relative w-full h-32 lg:h-40 flex items-center justify-center">
-    <motion.div
-      className="absolute w-24 h-24 lg:w-32 lg:h-32 rounded-full bg-joe-blue/5 border border-joe-blue/20"
-      animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.2, 0.5] }}
-      transition={{ duration: 3, repeat: Infinity }}
-    />
-    <motion.div
-      className="absolute w-16 h-16 lg:w-24 lg:h-24 rounded-full bg-joe-blue/10 border border-joe-blue/30"
-      animate={{ scale: [1, 1.1, 1], opacity: [0.7, 0.4, 0.7] }}
-      transition={{ duration: 2, repeat: Infinity }}
-    />
-    <motion.div
-      className="relative z-10 p-4 lg:p-6 rounded-full bg-gradient-to-br from-joe-blue/20 to-dws-green/20 border border-joe-blue/50"
-      animate={{ rotate: 360 }}
-      transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
-    >
-      <Brain className="w-8 h-8 lg:w-12 lg:h-12 text-joe-blue" />
-    </motion.div>
-    {/* Orbiting elements */}
-    {[0, 1, 2].map((i) => (
-      <motion.div
-        key={i}
-        className="absolute w-3 h-3 lg:w-4 lg:h-4 rounded-full bg-dws-green"
-        style={{ boxShadow: '0 0 10px rgba(34, 197, 94, 0.5)' }}
-        animate={{
-          rotate: 360,
-          x: [Math.cos(i * 2.1) * 50, Math.cos(i * 2.1 + Math.PI) * 50],
-          y: [Math.sin(i * 2.1) * 50, Math.sin(i * 2.1 + Math.PI) * 50]
-        }}
-        transition={{ duration: 4 + i, repeat: Infinity, ease: 'linear' }}
-      />
-    ))}
-  </div>
-);
 
 export default function DashboardView() {
   const {
@@ -300,9 +252,6 @@ export default function DashboardView() {
 
   return (
     <div className="relative min-h-screen">
-      {/* AI Neural Network Background */}
-      <AINetworkBackground />
-
       {/* Main Content */}
       <div className="relative z-10 space-y-6 lg:space-y-8 p-2">
         {/* Header - 4K Optimized */}
@@ -419,7 +368,6 @@ export default function DashboardView() {
               value={`${securityScore}%`}
               label="Security Score"
               sublabel="Overall posture rating"
-              trend={{ value: '+5%', up: true }}
               color={securityScore >= 80 ? 'green' : securityScore >= 50 ? 'yellow' : 'red'}
               onClick={() => setActiveModal('risk')}
             />
@@ -493,7 +441,13 @@ export default function DashboardView() {
                   </div>
                 </div>
               </div>
-              <AIBrainViz />
+              <div className="hidden lg:flex items-center gap-3 p-4 rounded-xl bg-joe-blue/10 border border-joe-blue/30">
+                <Brain className="w-8 h-8 lg:w-10 lg:h-10 text-joe-blue" />
+                <div>
+                  <div className="text-white font-medium">J.O.E. AI</div>
+                  <div className="text-dws-green text-sm">Online</div>
+                </div>
+              </div>
             </div>
           </HoloCard>
         </motion.div>
@@ -577,7 +531,7 @@ export default function DashboardView() {
             { icon: Package, value: sbomStats.libraries, label: 'Libraries', color: 'text-dws-green', onClick: () => setActiveModal('sbom') },
             { icon: GitBranch, value: sbomStats.frameworks, label: 'Frameworks', color: 'text-joe-blue', onClick: () => setActiveModal('sbom') },
             { icon: Lock, value: compliance.compliant, label: 'Compliant', color: 'text-dws-green', onClick: () => setActiveModal('compliance') },
-            { icon: Eye, value: 24, label: 'Monitored', color: 'text-joe-blue', onClick: () => {} }
+            { icon: Eye, value: recentFindings.length, label: 'Tracked', color: 'text-joe-blue', onClick: () => setActiveModal('findings') }
           ].map((stat, i) => (
             <HoloCard key={i} onClick={stat.onClick} className="p-4 lg:p-6 text-center">
               <stat.icon className={`w-6 h-6 lg:w-8 lg:h-8 ${stat.color} mx-auto mb-3`} />

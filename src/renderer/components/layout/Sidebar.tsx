@@ -21,7 +21,8 @@ import {
   Brain,
   Cloud,
   Globe,
-  Link2
+  Link2,
+  Box
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -41,6 +42,7 @@ const navItems = [
   { path: '/mission-control', label: 'Mission Control', icon: Rocket },
   { path: '/attack-surface', label: 'Attack Surface', icon: Crosshair },
   { path: '/integrations', label: 'Integrations', icon: Link2 },
+  { path: '/virtual-spaces', label: 'Virtual Spaces', icon: Box },
   { path: '/analytics', label: 'Analytics', icon: Brain },
   { path: '/reports', label: 'Reports', icon: FileText }
 ];

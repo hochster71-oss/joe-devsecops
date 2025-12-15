@@ -80,6 +80,11 @@ interface ElectronAPI {
     runAllScans: (path: string) => Promise<unknown[]>;
   };
 
+  sbomBasic: {
+    generate: (path: string, format: string) => Promise<string>;
+    parse: (sbomPath: string) => Promise<unknown[]>;
+  };
+
   compliance: {
     getControls: () => Promise<unknown[]>;
     evaluateControl: (controlId: string) => Promise<unknown>;
@@ -501,6 +506,108 @@ interface ElectronAPI {
     disconnect: (platform: string) => Promise<void>;
     testConnection: (platform: string) => Promise<{ success: boolean; error?: string }>;
     configure: (platform: string, config: unknown) => Promise<{ success: boolean; error?: string }>;
+  };
+
+  virtualSpaces: {
+    getClusterStatus: () => Promise<{
+      status: 'offline' | 'starting' | 'ready' | 'error' | 'not-installed';
+      name: string;
+      nodes: number;
+      version?: string;
+      error?: string;
+    }>;
+    initCluster: () => Promise<{
+      status: 'offline' | 'starting' | 'ready' | 'error' | 'not-installed';
+      name: string;
+      nodes: number;
+      version?: string;
+      error?: string;
+    }>;
+    destroyCluster: () => Promise<void>;
+    createSpace: (config: {
+      name: string;
+      owner: string;
+      tier: 'team' | 'elevated' | 'admin';
+      ttlMinutes?: number;
+    }) => Promise<{
+      id: string;
+      name: string;
+      owner: string;
+      tier: 'team' | 'elevated' | 'admin';
+      status: 'creating' | 'ready' | 'scanning' | 'importing' | 'exporting' | 'destroying' | 'destroyed' | 'error';
+      namespace: string;
+      createdAt: string;
+      expiresAt: string;
+      ttlMinutes: number;
+      codeSource?: { type: 'git' | 'upload' | 'local'; url?: string; branch?: string; path?: string };
+      scanResults?: {
+        scanTime: string;
+        findings: Array<{ id: string; title: string; severity: string; tool: string; description?: string; remediation?: string; file?: string; line?: number }>;
+        summary: { critical: number; high: number; medium: number; low: number; info: number; total: number };
+        passed: boolean;
+      };
+      error?: string;
+    }>;
+    destroySpace: (spaceId: string) => Promise<void>;
+    listSpaces: () => Promise<Array<{
+      id: string;
+      name: string;
+      owner: string;
+      tier: 'team' | 'elevated' | 'admin';
+      status: 'creating' | 'ready' | 'scanning' | 'importing' | 'exporting' | 'destroying' | 'destroyed' | 'error';
+      namespace: string;
+      createdAt: string;
+      expiresAt: string;
+      ttlMinutes: number;
+      codeSource?: { type: 'git' | 'upload' | 'local'; url?: string; branch?: string; path?: string };
+      scanResults?: {
+        scanTime: string;
+        findings: Array<{ id: string; title: string; severity: string; tool: string; description?: string; remediation?: string; file?: string; line?: number }>;
+        summary: { critical: number; high: number; medium: number; low: number; info: number; total: number };
+        passed: boolean;
+      };
+      error?: string;
+    }>>;
+    importCode: (spaceId: string, source: { type: 'git' | 'upload' | 'local'; url?: string; branch?: string; path?: string }) => Promise<{
+      success: boolean;
+      filesImported: number;
+      path: string;
+      error?: string;
+    }>;
+    exportArtifacts: (spaceId: string, artifacts: string[]) => Promise<{
+      success: boolean;
+      exportPath: string;
+      artifacts: string[];
+      error?: string;
+    }>;
+    scanSpace: (spaceId: string) => Promise<{
+      scanTime: string;
+      findings: Array<{ id: string; title: string; severity: string; tool: string; description?: string; remediation?: string; file?: string; line?: number }>;
+      summary: { critical: number; high: number; medium: number; low: number; info: number; total: number };
+      passed: boolean;
+    }>;
+    extendSpace: (spaceId: string, additionalMinutes: number) => Promise<{
+      id: string;
+      name: string;
+      owner: string;
+      tier: 'team' | 'elevated' | 'admin';
+      status: 'creating' | 'ready' | 'scanning' | 'importing' | 'exporting' | 'destroying' | 'destroyed' | 'error';
+      namespace: string;
+      createdAt: string;
+      expiresAt: string;
+      ttlMinutes: number;
+    }>;
+    getTiers: () => Promise<Record<'team' | 'elevated' | 'admin', {
+      name: string;
+      description: string;
+      pssLevel: 'restricted' | 'baseline' | 'privileged';
+      networkPolicy: 'deny-all' | 'limited-egress' | 'allow-all';
+      resourceQuota: { cpu: string; memory: string; pods: number };
+      allowPrivileged: boolean;
+      allowHostPath: boolean;
+      allowedOwners?: string[];
+    }>>;
+    canCreateTier: (tier: 'team' | 'elevated' | 'admin', owner: string) => Promise<boolean>;
   };
 
   spaceCompliance: {
